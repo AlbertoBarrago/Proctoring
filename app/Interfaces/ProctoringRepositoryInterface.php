@@ -12,4 +12,6 @@ interface ProctoringRepositoryInterface
     public function logEvent(string $sessionId, array $eventData);
 
     public function getSession(string $sessionId);
+
+    public function recordViolation(string $sessionId, string $type, int $timestamp, string $details): int;
 }

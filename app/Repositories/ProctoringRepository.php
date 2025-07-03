@@ -30,6 +30,21 @@ class ProctoringRepository implements ProctoringRepositoryInterface
             ]);
     }
 
+    public function recordViolation(string $sessionId, string $type, int $timestamp, string $details): int
+    {
+        return DB::table('proctoring_events')->insertGetId([
+            'session_id' => $sessionId,
+            'event_type' => $type,
+            'event_data' => json_encode([
+                'timestamp' => $timestamp,
+                'details' => $details
+            ]),
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+    }
+
+
     public function logEvent(string $sessionId, array $eventData)
     {
         return DB::table('proctoring_events')->insert([
@@ -47,4 +62,5 @@ class ProctoringRepository implements ProctoringRepositoryInterface
             ->where('id', $sessionId)
             ->first();
     }
+
 }

@@ -30,11 +30,22 @@ export class ProctoringService {
     );
   }
 
-  endSession(sessionId: string) {
-    console.log("session ended")
-    return
-   /* return this.http.post(`${this.apiUrl}/end`, { session_id: sessionId });*/
+  endSession(sessionId: string): Observable<any> {
+    console.log('Ending session:', sessionId);
+    return this.http.post(`${this.apiUrl}/end`, { session_id: String(sessionId) }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    }).pipe(
+      tap((response: any) => console.log('Session ended successfully:', response)),
+      catchError(error => {
+        console.error('Error ending session:', error);
+        throw error;
+      })
+    );
   }
+
 
   recordViolation(sessionId: string, type: string, timestamp: number, details: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/violation`, {
@@ -43,13 +54,5 @@ export class ProctoringService {
       timestamp: timestamp,
       details: details
     });
-  }
-
-  getSessions(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/sessions`);
-  }
-
-  getSessionDetails(sessionId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/session/${sessionId}`);
   }
 }

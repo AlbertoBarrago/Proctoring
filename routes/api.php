@@ -16,6 +16,9 @@ use App\Http\Controllers\ProctoringController;
 
 Route::post('/proctoring/start', [ProctoringController::class, 'startSession']);
 Route::post('/proctoring/upload-chunk', [ProctoringController::class, 'uploadChunk']);
+Route::post('/proctoring/end', [ProctoringController::class, 'endSession']);
+Route::post('/proctoring/violation', [ProctoringController::class, 'recordViolation']);
+
 
 
 

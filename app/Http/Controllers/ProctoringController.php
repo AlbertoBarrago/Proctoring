@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+
 
 
 class ProctoringController extends Controller
@@ -89,6 +91,105 @@ class ProctoringController extends Controller
             ], 500);
         }
     }
+
+    public function recordViolation(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'session_id' => 'required|string',
+                'type' => 'required|string',
+                'timestamp' => 'required|numeric',
+                'details' => 'required|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validazione fallita',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $violationId = $this->proctoringRepository->recordViolation(
+                $request->input('session_id'),
+                $request->input('type'),
+                $request->input('timestamp'),
+                $request->input('details')
+            );
+
+            Log::info("Violazione registrata", [
+                'session_id' => $request->input('session_id'),
+                'type' => $request->input('type'),
+                'violation_id' => $violationId
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Violazione registrata con successo',
+                'violation_id' => $violationId
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Errore durante la registrazione della violazione: " . $e->getMessage(), [
+                'exception' => $e,
+                'session_id' => $request->input('session_id')
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Si è verificato un errore durante la registrazione della violazione',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function endSession(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'session_id' => 'required|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validazione fallita',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $sessionId = $request->input('session_id');
+
+            $result = $this->proctoringRepository->endSession($sessionId);
+
+            if (!$result) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sessione non trovata o non può essere terminata'
+                ], 404);
+            }
+
+            Log::info("Sessione di proctoring terminata", ['session_id' => $sessionId]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sessione di proctoring terminata con successo',
+                'session_id' => $sessionId
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Errore durante la terminazione della sessione: " . $e->getMessage(), [
+                'exception' => $e,
+                'session_id' => $request->input('session_id')
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Si è verificato un errore durante la terminazione della sessione',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 
 }

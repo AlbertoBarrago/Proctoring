@@ -55,6 +55,43 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  async startScreenRecording(): Promise<void> {
+    if (!this.sessionId) {
+      this.violationMessage = 'Cannot start recording: No active session.';
+      return;
+    }
+    try {
+      await this.screenRecordingService.startRecording();
+      this.isRecordingActive = true;
+      console.log('Screen recording started.');
+    } catch (error) {
+      console.error('Failed to start screen recording:', error);
+      this.violationMessage = 'Failed to start screen recording.';
+    }
+  }
+
+  async stopScreenRecording(): Promise<void> {
+    if (!this.isRecordingActive || !this.sessionId) return;
+
+    try {
+      const recordedBlob = this.screenRecordingService.stopRecording();
+
+      this.isRecordingActive = false;
+
+      if (recordedBlob && recordedBlob.size > 0) {
+        console.log('Screen recording stopped. Uploading...', recordedBlob);
+        await this.screenRecordingService.uploadRecording(this.sessionId, recordedBlob);
+        console.log('Screen recording uploaded successfully.');
+      } else {
+        console.log('No recording data available to upload');
+      }
+    } catch (error) {
+      console.error('Failed to stop or upload screen recording:', error);
+      this.violationMessage = 'Failed to stop or upload screen recording.';
+      this.isRecordingActive = false;
+    }
+  }
+
   private initializeWebSocket(): void {
     this.webSocketService.connect();
     this.pusherSubscription = this.webSocketService.subscribeToChannel('test-channel').subscribe({
@@ -186,7 +223,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.violationCount++;
     if (this.violationCount % 5 === 0 && this.sessionId) {
       const timestamp = Math.floor((Date.now() - (this.proctoringService.sessionStartTime || Date.now())) / 1000);
-      this.proctoringService.recordViolation(this.sessionId, type, timestamp, details).subscribe({
+      const sessionIdString = String(this.sessionId);
+      this.proctoringService.recordViolation(sessionIdString, type, timestamp, details).subscribe({
         next: () => console.log('Violation recorded:', type),
         error: (err) => console.error('Failed to record violation:', err)
       });
@@ -197,31 +235,52 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.isProctoringActive || !this.sessionId) return;
 
     try {
+      console.log('Starting end proctoring process for session:', this.sessionId);
+
       this.stopFaceDetection();
+
       if (this.isRecordingActive) {
-        await this.stopScreenRecording();
+        try {
+          await this.stopScreenRecording();
+        } catch (recordingError) {
+          console.error('Error stopping screen recording:', recordingError);
+          this.isRecordingActive = false;
+        }
       }
+
       this.stopWebcam();
 
-      await this.proctoringService.endSession(this.sessionId);
-      this.cleanupSession();
+      const sessionIdToEnd = String(this.sessionId);
+
+      this.proctoringService.endSession(sessionIdToEnd).subscribe({
+        next: (response) => {
+          console.log('Session ended successfully on server:', response);
+          this.sessionStatus = 'Completed';
+          this.isProctoringActive = false;
+
+          const endedSessionId = this.sessionId;
+          this.sessionId = null;
+          this.violationMessage = '';
+          this.numFaces = null;
+          this.faceDirection = '';
+
+          console.log('Proctoring session ended:', endedSessionId);
+        },
+        error: (error) => {
+          console.error('Error ending session on server:', error);
+          this.sessionStatus = 'Completed with errors';
+          this.violationMessage = error.error?.message || 'Failed to end proctoring session on server.';
+        },
+        complete: () => {
+          this.stopProctoringCleanup();
+        }
+      });
     } catch (error: any) {
-      console.error('Error ending proctoring:', error);
+      console.error('Error during end proctoring process:', error);
       this.sessionStatus = 'Completed with errors';
-      this.violationMessage = error.error?.message || 'Failed to end proctoring session.';
-    } finally {
+      this.violationMessage = error.message || 'Failed to end proctoring session.';
       this.stopProctoringCleanup();
     }
-  }
-
-  private cleanupSession(): void {
-    this.sessionStatus = 'Completed';
-    this.isProctoringActive = false;
-    console.log('Proctoring session ended:', this.sessionId);
-    this.sessionId = null;
-    this.violationMessage = '';
-    this.numFaces = null;
-    this.faceDirection = '';
   }
 
   private stopFaceDetection(): void {
@@ -246,37 +305,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       this.videoStream.getTracks().forEach(track => track.stop());
       this.videoStream = null;
       this.videoElementRef.nativeElement.srcObject = null;
-    }
-  }
-
-  async startScreenRecording(): Promise<void> {
-    if (!this.sessionId) {
-      this.violationMessage = 'Cannot start recording: No active session.';
-      return;
-    }
-    try {
-      await this.screenRecordingService.startRecording();
-      this.isRecordingActive = true;
-      console.log('Screen recording started.');
-    } catch (error) {
-      console.error('Failed to start screen recording:', error);
-      this.violationMessage = 'Failed to start screen recording.';
-    }
-  }
-
-  async stopScreenRecording(): Promise<void> {
-    if (!this.isRecordingActive || !this.sessionId) return;
-    try {
-      const recordedBlob = this.screenRecordingService.stopRecording();
-      if (recordedBlob) {
-        console.log('Screen recording stopped. Uploading...');
-        await this.screenRecordingService.uploadRecording(this.sessionId, recordedBlob);
-        console.log('Screen recording uploaded successfully.');
-      }
-      this.isRecordingActive = false;
-    } catch (error) {
-      console.error('Failed to stop or upload screen recording:', error);
-      this.violationMessage = 'Failed to stop or upload screen recording.';
     }
   }
 

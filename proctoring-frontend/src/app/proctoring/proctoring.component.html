@@ -4,7 +4,7 @@
   <div class="controls">
     <button *ngIf="!isProctoringActive" (click)="startProctoring()">Start Proctoring</button>
     <button *ngIf="isProctoringActive" (click)="endProctoring()">End Proctoring</button>
-    <button *ngIf="isProctoringActive" (click)="startScreenRecording()">Start Screen Record</button>
+    <button *ngIf="isProctoringActive && !isRecordingActive" (click)="startScreenRecording()">Start Screen Record</button>
     <button *ngIf="isRecordingActive" (click)="stopScreenRecording()">Stop Screen Record</button>
   </div>
 
