@@ -10,13 +10,20 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
-    server: {
-        fs: {
-            allow: ['..']
-        }
-    },
     assetsInclude: ['**/*.wasm'],
     optimizeDeps: {
         exclude: ['onnxruntime-web']
+    },
+    build: {
+        rollupOptions: {
+            external: [],
+            output: {
+                manualChunks: undefined
+            }
+        }
+    },
+    define: {
+        global: 'globalThis'
     }
+
 });
