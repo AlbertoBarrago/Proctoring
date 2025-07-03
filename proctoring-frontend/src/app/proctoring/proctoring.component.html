@@ -1,0 +1,24 @@
+<div class="proctoring-container">
+  <h2>Proctoring Session</h2>
+
+  <div class="controls">
+    <button *ngIf="!isProctoringActive" (click)="startProctoring()">Start Proctoring</button>
+    <button *ngIf="isProctoringActive" (click)="endProctoring()">End Proctoring</button>
+    <button *ngIf="isProctoringActive" (click)="startScreenRecording()">Start Screen Record</button>
+    <button *ngIf="isRecordingActive" (click)="stopScreenRecording()">Stop Screen Record</button>
+  </div>
+
+  <div class="video-container">
+    <video #videoElement autoplay muted class="webcam-video"></video>
+    <canvas #overlayCanvas class="overlay-canvas"></canvas>
+  </div>
+
+  <div class="status-info">
+    <p>Session Status: <strong>{{ sessionStatus }}</strong></p>
+    <p *ngIf="sessionId">Session ID: <strong>{{ sessionId }}</strong></p>
+    <p *ngIf="faceDetectionStatus">Face Detection: <strong>{{ faceDetectionStatus }}</strong></p>
+    <p *ngIf="numFaces !== null">Faces Detected: <strong>{{ numFaces }}</strong></p>
+    <p *ngIf="faceDirection">Face Direction: <strong>{{ faceDirection }}</strong></p>
+    <p *ngIf="violationMessage" class="violation-message">{{ violationMessage }}</p>
+    <p>{{ pusherMessage }}</p> </div>
+</div>
