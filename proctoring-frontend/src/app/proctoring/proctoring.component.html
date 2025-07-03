@@ -1,3 +1,4 @@
+
 <div class="proctoring-container">
   <h2>Proctoring Session</h2>
 
@@ -19,6 +20,24 @@
     <p *ngIf="faceDetectionStatus">Face Detection: <strong>{{ faceDetectionStatus }}</strong></p>
     <p *ngIf="numFaces !== null">Faces Detected: <strong>{{ numFaces }}</strong></p>
     <p *ngIf="faceDirection">Face Direction: <strong>{{ faceDirection }}</strong></p>
+    <p>Voice Detection: <strong>{{ vadStatus }}</strong>
+      <span class="vad-status"
+            [class.ready]="vadStatus === 'Ready'"
+            [class.monitoring]="vadStatus === 'Monitoring'"
+            [class.failed]="vadStatus.includes('Failed')"
+            [class.initializing]="vadStatus === 'Initializing...'">
+        {{ vadStatus }}
+      </span>
+    </p>
+    <p *ngIf="vadStatus === 'Monitoring'">
+      Speech Detected:
+      <span [class.speech-active]="isSpeechDetected">
+        <strong>{{ isSpeechDetected ? 'YES' : 'NO' }}</strong>
+      </span>
+      <span *ngIf="isSpeechDetected" class="audio-confidence">
+        ({{ (speechConfidence * 100).toFixed(1) }}%)
+      </span>
+    </p>
     <p *ngIf="violationMessage" class="violation-message">{{ violationMessage }}</p>
     <p>{{ pusherMessage }}</p>
   </div>

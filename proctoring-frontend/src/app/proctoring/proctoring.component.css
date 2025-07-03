@@ -1,3 +1,4 @@
+
 .proctoring-container {
   display: flex;
   flex-direction: column;
@@ -52,7 +53,6 @@ h2 {
   background-color: #0056b3;
 }
 
-
 .video-container {
   position: relative;
   width: 100%;
@@ -100,4 +100,61 @@ h2 {
   font-weight: bold;
   margin-top: 10px;
   font-size: 1.1em;
+}
+
+/* Nuove classi per il VAD che si integrano con il tuo stile */
+.speech-active {
+  color: #28a745;
+  font-weight: bold;
+  background-color: #d4edda;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  animation: speech-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes speech-pulse {
+  0%, 100% {
+    background-color: #d4edda;
+    transform: scale(1);
+  }
+  50% {
+    background-color: #c3e6cb;
+    transform: scale(1.02);
+  }
+}
+
+.audio-confidence {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 8px;
+}
+
+.vad-status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.vad-status.ready {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.vad-status.monitoring {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.vad-status.failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.vad-status.initializing {
+  background-color: #fff3cd;
+  color: #856404;
 }

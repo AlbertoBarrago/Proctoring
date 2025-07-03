@@ -1,13 +1,15 @@
+
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FaceDetectionService } from '../services/face-detection.service';
 import { ScreenRecordingService } from '../services/screen-recording.service';
 import { WebSocketService } from '../services/websocket.service';
+import { VoiceActivityDetectionService } from '../services/voice-activity-detection.service';
 import { Subscription } from 'rxjs';
 import * as faceapi from 'face-api.js';
 import { ProctoringService } from "../services/proctoring.service";
-import {EnvironmentService} from "../services/environment.service";
+import { EnvironmentService } from "../services/environment.service";
 
 @Component({
   selector: 'app-proctoring',
@@ -23,6 +25,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   private videoStream: MediaStream | null = null;
   private detectionInterval: any;
   private pusherSubscription: Subscription | undefined;
+  private vadSubscription: Subscription | undefined;
   private violationCount: number = 0;
 
   isProctoringActive: boolean = false;
@@ -36,18 +39,60 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   pusherMessage: string = '';
   isRecordingVideo: boolean = false;
 
+  // VAD-related properties
+  vadStatus: string = 'Not initialized';
+  isSpeechDetected: boolean = false;
+  speechConfidence: number = 0;
+  lastSpeechTime: number = 0;
+
   constructor(
     private proctoringService: ProctoringService,
     private faceDetectionService: FaceDetectionService,
     private screenRecordingService: ScreenRecordingService,
     private webSocketService: WebSocketService,
-    private environmentService: EnvironmentService
+    private environmentService: EnvironmentService,
+    private vadService: VoiceActivityDetectionService
   ) {}
-
 
   ngOnInit(): void {
     this.initializeWebSocket();
     this.checkRecordingState();
+    this.initializeVAD();
+  }
+
+  private async initializeVAD(): Promise<void> {
+    try {
+      this.vadStatus = 'Initializing...';
+      await this.vadService.initialize();
+      this.vadStatus = 'Ready';
+
+      // Subscribe to VAD results
+      this.vadSubscription = this.vadService.getVADResult().subscribe(result => {
+        if (result) {
+          this.isSpeechDetected = result.isSpeech;
+          this.speechConfidence = result.confidence;
+
+          if (result.isSpeech) {
+            this.lastSpeechTime = result.timestamp;
+            this.handleVoiceDetection(result);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error initializing VAD:', error);
+      this.vadStatus = 'Failed to initialize';
+    }
+  }
+
+  private handleVoiceDetection(vadResult: any): void {
+    if (this.isProctoringActive && this.sessionId) {
+      // Log voice detection event
+      console.log('Voice detected:', vadResult);
+
+      // You can implement logic here to handle voice detection
+      // For example, record violation if speech is detected during a silent exam
+      // this.handleViolation('voice_detected', `Voice detected with confidence ${vadResult.confidence.toFixed(2)}`);
+    }
   }
 
   private checkRecordingState(): void {
@@ -55,6 +100,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isRecordingActive = this.screenRecordingService.isRecordingActive();
     }, 1000);
   }
+
   async ngAfterViewInit(): Promise<void> {
     try {
       await this.faceDetectionService.loadModels();
@@ -75,10 +121,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
     try {
       this.violationMessage = '';
-
-      // Start the recording
       await this.screenRecordingService.startRecording();
-
       this.isRecordingActive = true;
       console.log('Screen recording started successfully.');
     } catch (error) {
@@ -87,13 +130,11 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-
   async stopScreenRecording(): Promise<void> {
     if (!this.isRecordingActive || !this.sessionId) return;
 
     try {
       const recordedBlob = await this.screenRecordingService.stopRecording();
-
       this.isRecordingActive = false;
 
       if (recordedBlob && recordedBlob.size > 0) {
@@ -135,12 +176,26 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
       await this.initializeWebcam();
       await this.startFaceDetection();
+      await this.startVoiceMonitoring();
       await this.startScreenRecording();
 
       console.log('Proctoring started for session:', this.sessionId);
     } catch (error: any) {
       console.error('Error starting proctoring:', error);
       this.handleProctoringError(error);
+    }
+  }
+
+  private async startVoiceMonitoring(): Promise<void> {
+    try {
+      if (this.vadStatus === 'Ready') {
+        await this.vadService.startMonitoring();
+        this.vadStatus = 'Monitoring';
+        console.log('Voice monitoring started');
+      }
+    } catch (error) {
+      console.error('Error starting voice monitoring:', error);
+      this.vadStatus = 'Failed to start monitoring';
     }
   }
 
@@ -158,7 +213,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       video.srcObject = this.videoStream;
       await video.play();
 
-      // Set canvas dimensions
       const canvas = this.overlayCanvasRef.nativeElement;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -256,6 +310,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       console.log('Starting end proctoring process for session:', this.sessionId);
 
       this.stopFaceDetection();
+      this.stopVoiceMonitoring();
 
       if (this.isRecordingActive) {
         try {
@@ -301,6 +356,13 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  private stopVoiceMonitoring(): void {
+    if (this.vadService.isCurrentlyMonitoring()) {
+      this.vadService.stopMonitoring();
+      this.vadStatus = 'Stopped';
+    }
+  }
+
   private stopFaceDetection(): void {
     if (this.detectionInterval) {
       clearInterval(this.detectionInterval);
@@ -335,6 +397,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   private stopProctoringCleanup(): void {
     this.stopWebcam();
     this.stopFaceDetection();
+    this.stopVoiceMonitoring();
     if (this.isRecordingActive) {
       this.screenRecordingService.stopRecording();
       this.isRecordingActive = false;
@@ -346,6 +409,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.faceDirection = '';
     this.violationMessage = '';
     this.violationCount = 0;
+    this.vadStatus = 'Ready';
   }
 
   ngOnDestroy(): void {
@@ -353,6 +417,10 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.pusherSubscription) {
       this.pusherSubscription.unsubscribe();
     }
+    if (this.vadSubscription) {
+      this.vadSubscription.unsubscribe();
+    }
     this.webSocketService.disconnect();
+    this.vadService.cleanup();
   }
 }
