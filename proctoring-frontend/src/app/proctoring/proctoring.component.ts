@@ -7,6 +7,7 @@ import { WebSocketService } from '../services/websocket.service';
 import { Subscription } from 'rxjs';
 import * as faceapi from 'face-api.js';
 import { ProctoringService } from "../services/proctoring.service";
+import {EnvironmentService} from "../services/environment.service";
 
 @Component({
   selector: 'app-proctoring',
@@ -33,18 +34,27 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   faceDirection: string = '';
   violationMessage: string = '';
   pusherMessage: string = '';
+  isRecordingVideo: boolean = false;
 
   constructor(
     private proctoringService: ProctoringService,
     private faceDetectionService: FaceDetectionService,
     private screenRecordingService: ScreenRecordingService,
     private webSocketService: WebSocketService,
+    private environmentService: EnvironmentService
   ) {}
+
 
   ngOnInit(): void {
     this.initializeWebSocket();
+    this.checkRecordingState();
   }
 
+  private checkRecordingState(): void {
+    setInterval(() => {
+      this.isRecordingActive = this.screenRecordingService.isRecordingActive();
+    }, 1000);
+  }
   async ngAfterViewInit(): Promise<void> {
     try {
       await this.faceDetectionService.loadModels();
@@ -60,21 +70,29 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       this.violationMessage = 'Cannot start recording: No active session.';
       return;
     }
+
+    console.log('Attempting to start screen recording...');
+
     try {
+      this.violationMessage = '';
+
+      // Start the recording
       await this.screenRecordingService.startRecording();
+
       this.isRecordingActive = true;
-      console.log('Screen recording started.');
+      console.log('Screen recording started successfully.');
     } catch (error) {
       console.error('Failed to start screen recording:', error);
-      this.violationMessage = 'Failed to start screen recording.';
+      this.violationMessage = 'Failed to start screen recording. Please check browser permissions.';
     }
   }
+
 
   async stopScreenRecording(): Promise<void> {
     if (!this.isRecordingActive || !this.sessionId) return;
 
     try {
-      const recordedBlob = this.screenRecordingService.stopRecording();
+      const recordedBlob = await this.screenRecordingService.stopRecording();
 
       this.isRecordingActive = false;
 

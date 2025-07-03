@@ -2,8 +2,8 @@
   <h2>Proctoring Session</h2>
 
   <div class="controls">
-    <button *ngIf="!isProctoringActive" (click)="startProctoring()">Start Proctoring</button>
-    <button *ngIf="isProctoringActive" (click)="endProctoring()">End Proctoring</button>
+    <button *ngIf="!isProctoringActive" (click)="startProctoring()">Start Proctoring Session</button>
+    <button *ngIf="isProctoringActive" (click)="endProctoring()">End Proctoring Session</button>
     <button *ngIf="isProctoringActive && !isRecordingActive" (click)="startScreenRecording()">Start Screen Record</button>
     <button *ngIf="isRecordingActive" (click)="stopScreenRecording()">Stop Screen Record</button>
   </div>
@@ -20,5 +20,6 @@
     <p *ngIf="numFaces !== null">Faces Detected: <strong>{{ numFaces }}</strong></p>
     <p *ngIf="faceDirection">Face Direction: <strong>{{ faceDirection }}</strong></p>
     <p *ngIf="violationMessage" class="violation-message">{{ violationMessage }}</p>
-    <p>{{ pusherMessage }}</p> </div>
+    <p>{{ pusherMessage }}</p>
+  </div>
 </div>
