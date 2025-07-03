@@ -6,58 +6,93 @@ import * as faceapi from 'face-api.js';
 })
 export class FaceDetectionService {
   private modelsLoaded = false;
+  private readonly MODEL_URL = '/assets/models';
 
   async loadModels(): Promise<void> {
-    const MODEL_URL = '/assets/models';
+    try {
+      if (this.modelsLoaded) {
+        console.log('Face detection models already loaded');
+        return;
+      }
 
-    await Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-      faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
-    ]);
+      console.log('Loading face detection models...');
 
-    this.modelsLoaded = true;
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(this.MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(this.MODEL_URL)
+      ]);
+
+      this.modelsLoaded = true;
+      console.log('Face detection models loaded successfully');
+    } catch (error) {
+      console.error('Error loading face detection models:', error);
+      this.modelsLoaded = false;
+      throw error;
+    }
   }
 
-  async detectFaces(video: HTMLVideoElement): Promise<any[]> {
-    if (!this.modelsLoaded) {
-      await this.loadModels();
+  async detectFaces(video: HTMLVideoElement): Promise<faceapi.WithFaceLandmarks<{ detection: faceapi.FaceDetection }>[]> {
+    if (!video.srcObject) {
+      console.error('No video source');
+      return [];
     }
 
-    return await faceapi
-      .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceExpressions();
-  }
+    try {
+      if (!this.modelsLoaded) {
+        await this.loadModels();
+      }
 
-  async detectMultipleFaces(video: HTMLVideoElement): Promise<boolean> {
-    const detections = await this.detectFaces(video);
-    return detections.length > 1;
+      const detections = await faceapi
+        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+          inputSize: 224,
+          scoreThreshold: 0.5
+        }))
+        .withFaceLandmarks();
+
+      console.log(`Detected ${detections.length} faces`);
+      return detections;
+
+    } catch (error) {
+      console.error('Error detecting faces:', error);
+      return [];
+    }
   }
 
   async detectFaceDirection(video: HTMLVideoElement): Promise<string> {
-    const detections = await this.detectFaces(video);
+    try {
+      const detections = await this.detectFaces(video);
 
-    if (detections.length === 0) return 'no-face';
+      if (detections.length === 0) {
+        return 'no-face';
+      }
 
-    const landmarks = detections[0].landmarks;
-    const jawLine = landmarks.getJawOutline();
-    const nose = landmarks.getNose();
+      const landmarks = detections[0].landmarks;
+      const nose = landmarks.getNose();
+      const jawOutline = landmarks.getJawOutline();
 
-    // Simple direction detection based on nose position relative to face
-    const faceCenter = jawLine.reduce((sum: any, point: any) =>
-      ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
-    faceCenter.x /= jawLine.length;
-    faceCenter.y /= jawLine.length;
+      // Calcola il centro del viso usando i punti della mascella
+      const faceCenter = {
+        x: jawOutline.reduce((sum, point) => sum + point.x, 0) / jawOutline.length,
+        y: jawOutline.reduce((sum, point) => sum + point.y, 0) / jawOutline.length
+      };
 
-    const noseCenter = nose[3]; // Nose tip
+      const noseTip = nose[3];
+      const threshold = 15;
 
-    if (noseCenter.x < faceCenter.x - 10) return 'looking-left';
-    if (noseCenter.x > faceCenter.x + 10) return 'looking-right';
-    if (noseCenter.y < faceCenter.y - 10) return 'looking-up';
-    if (noseCenter.y > faceCenter.y + 10) return 'looking-down';
+      if (Math.abs(noseTip.x - faceCenter.x) < threshold &&
+        Math.abs(noseTip.y - faceCenter.y) < threshold) {
+        return 'looking-forward';
+      }
 
-    return 'looking-forward';
+      if (noseTip.x < faceCenter.x - threshold) return 'looking-left';
+      if (noseTip.x > faceCenter.x + threshold) return 'looking-right';
+      if (noseTip.y < faceCenter.y - threshold) return 'looking-up';
+      if (noseTip.y > faceCenter.y + threshold) return 'looking-down';
+
+      return 'looking-forward';
+    } catch (error) {
+      console.error('Error detecting face direction:', error);
+      return 'no-face';
+    }
   }
 }

@@ -30,8 +30,10 @@ export class ProctoringService {
     );
   }
 
-  endSession(sessionId: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/end`, { session_id: sessionId });
+  endSession(sessionId: string) {
+    console.log("session ended")
+    return
+   /* return this.http.post(`${this.apiUrl}/end`, { session_id: sessionId });*/
   }
 
   recordViolation(sessionId: string, type: string, timestamp: number, details: string): Observable<any> {
