@@ -15,26 +15,23 @@ class Cors
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $headers = [
-            'paths' => ['api/*'],
-            'allowed_methods' => ['*'],
-            'allowed_origins' => ['http://localhost:4200'],
-            'allowed_origins_patterns' => [],
-            'allowed_headers' => ['*'],
-            'exposed_headers' => [],
-            'max_age' => 0,
-            'supports_credentials' => false,
-        ];
-
+        // Handle preflight OPTIONS requests
         if ($request->isMethod('OPTIONS')) {
-            return response('', 204)->withHeaders($headers);
+            return response('', 200)
+                ->header('Access-Control-Allow-Origin', 'http://localhost:4200')
+                ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
+                ->header('Access-Control-Allow-Credentials', 'false')
+                ->header('Access-Control-Max-Age', '86400');
         }
 
         $response = $next($request);
 
-        foreach ($headers as $key => $value) {
-            $response->header($key, $value);
-        }
+        // Add CORS headers to actual requests
+        $response->headers->set('Access-Control-Allow-Origin', 'http://localhost:4200');
+        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+        $response->headers->set('Access-Control-Allow-Credentials', 'false');
 
         return $response;
     }

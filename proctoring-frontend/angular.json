@@ -24,6 +24,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "**/*.wasm",
+                "input": "node_modules/onnxruntime-web/dist/",
+                "output": "/assets/"
               }
             ],
             "styles": [

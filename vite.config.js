@@ -10,4 +10,13 @@ export default defineConfig({
         }),
         tailwindcss(),
     ],
+    server: {
+        fs: {
+            allow: ['..']
+        }
+    },
+    assetsInclude: ['**/*.wasm'],
+    optimizeDeps: {
+        exclude: ['onnxruntime-web']
+    }
 });
