@@ -36,7 +36,7 @@ export class ScreenRecordingService {
     }
 
     console.warn('No preferred MIME types supported, using default');
-    return '';  // Let the browser choose the default
+    return '';
   }
 
   async startRecording(): Promise<void> {
@@ -56,8 +56,6 @@ export class ScreenRecordingService {
         audio: false // Request audio separately
       });
 
-     // console.log('Screen sharing permission granted.');
-
       // Try to get audio separately (this might fail, which is ok)
       let audioStream: MediaStream | null = null;
       try {
@@ -75,7 +73,6 @@ export class ScreenRecordingService {
         console.log('Microphone permission granted.');
       } catch (audioError) {
         console.warn('Could not get audio stream:', audioError);
-        // Continue without audio
       }
 
       // Combine streams if we have audio
@@ -123,7 +120,6 @@ export class ScreenRecordingService {
         }
       };
 
-      // Set up stop event handler
       this.mediaRecorder.onstop = () => {
         console.log('MediaRecorder stopped, chunks:', this.recordedChunks.length);
         if (this.stopResolve && this.recordedChunks.length > 0) {

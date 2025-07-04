@@ -99,6 +99,12 @@
       Start Proctoring
     </button>
 
+   <!-- <button
+      (click)="testSpeechRecognition()"
+      class="btn btn-secondary">
+      Test Speech Recognition
+    </button>-->
+
     <button
       (click)="endProctoring()"
       [disabled]="!isProctoringActive"
@@ -106,6 +112,8 @@
     >
       End Proctoring
     </button>
+
+
   </div>
 
   <!-- Video and Canvas Container -->
@@ -227,9 +235,5 @@
       {{ pusherMessage }}
     </div>
   </div>
-
-  <button (click)="testSpeechRecognition()" class="btn btn-secondary">
-    Test Speech Recognition
-  </button>
 
 </div>
