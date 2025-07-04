@@ -295,6 +295,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.violationCount++;
     if (this.violationCount % 5 === 0 && this.sessionId) {
       const timestamp = Math.floor((Date.now() - (this.proctoringService.sessionStartTime || Date.now())) / 1000);
+      console.log(timestamp)
       const sessionIdString = String(this.sessionId);
       this.proctoringService.recordViolation(sessionIdString, type, timestamp, details).subscribe({
         next: () => console.log('Violation recorded:', type),

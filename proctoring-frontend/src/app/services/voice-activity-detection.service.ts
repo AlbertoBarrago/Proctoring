@@ -23,7 +23,7 @@ export class VoiceActivityDetectionService {
   // Silero VAD configuration
   private readonly TARGET_SAMPLE_RATE = 16000;
   private readonly WINDOW_SIZE_SAMPLES = 512; // 32ms window at 16kHz
-  private readonly SPEECH_THRESHOLD = 0.001; // Soglia molto più bassa per debug
+  private readonly SPEECH_THRESHOLD = 0.001;
 
   // Hidden states for the RNN model
   private h: Float32Array = new Float32Array(128);
@@ -115,7 +115,7 @@ export class VoiceActivityDetectionService {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
-          sampleRate: 48000 // Prova a specificare un sample rate
+          sampleRate: 48000
         }
       });
 
@@ -204,12 +204,10 @@ export class VoiceActivityDetectionService {
 
       this.vadResultSubject.next(vadResult);
 
-      // Debug logging ogni 50 risultati (circa ogni secondo)
       if (this.debugCounter % 50 === 0) {
         console.log(`VAD Stats: Speech=${isSpeech}, RMS=${rms.toFixed(6)}, Threshold=${speechThreshold.toFixed(6)}, Min=${this.minRMS.toFixed(6)}, Max=${this.maxRMS.toFixed(6)}, Buffers processed=${this.debugCounter}`);
       }
 
-      // Log di attività vocale quando rilevata
       if (isSpeech) {
         console.log(`🗣️ Speech detected! RMS=${rms.toFixed(6)}, Confidence=${confidence.toFixed(2)}`);
       }

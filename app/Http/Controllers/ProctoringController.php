@@ -189,7 +189,4 @@ class ProctoringController extends Controller
             ], 500);
         }
     }
-
-
-
 }
