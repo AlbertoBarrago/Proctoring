@@ -18,7 +18,6 @@ export class VoiceActivityDetectionService {
   private audioWorkletNode: AudioWorkletNode | null = null;
   private isInitialized = false;
   private isMonitoring = false;
-  private vadModelAvailable = false;
 
   // Silero VAD configuration
   private readonly TARGET_SAMPLE_RATE = 16000;
@@ -74,7 +73,6 @@ export class VoiceActivityDetectionService {
 
       // Skip VAD model loading for now - use basic energy detection
       console.log('Using basic energy detection for voice activity');
-      this.vadModelAvailable = false;
 
       this.isInitialized = true;
       console.log('Voice Activity Detection service initialized successfully');

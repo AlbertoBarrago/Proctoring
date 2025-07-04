@@ -1,15 +1,13 @@
-
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { FaceDetectionService } from '../services/face-detection.service';
-import { ScreenRecordingService } from '../services/screen-recording.service';
-import { WebSocketService } from '../services/websocket.service';
-import { VoiceActivityDetectionService } from '../services/voice-activity-detection.service';
-import { Subscription } from 'rxjs';
+import {Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {FaceDetectionService} from '../services/face-detection.service';
+import {ScreenRecordingService} from '../services/screen-recording.service';
+import {WebSocketService} from '../services/websocket.service';
+import {VoiceActivityDetectionService} from '../services/voice-activity-detection.service';
+import {Subscription} from 'rxjs';
 import * as faceapi from 'face-api.js';
-import { ProctoringService } from "../services/proctoring.service";
-import { EnvironmentService } from "../services/environment.service";
+import {ProctoringService} from "../services/proctoring.service";
 
 @Component({
   selector: 'app-proctoring',
@@ -37,9 +35,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   faceDirection: string = '';
   violationMessage: string = '';
   pusherMessage: string = '';
-  isRecordingVideo: boolean = false;
 
-  // VAD-related properties
   vadStatus: string = 'Not initialized';
   isSpeechDetected: boolean = false;
   speechConfidence: number = 0;
@@ -50,9 +46,9 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     private faceDetectionService: FaceDetectionService,
     private screenRecordingService: ScreenRecordingService,
     private webSocketService: WebSocketService,
-    private environmentService: EnvironmentService,
     private vadService: VoiceActivityDetectionService
-  ) {}
+  ) {
+  }
 
   ngOnInit(): void {
     this.initializeWebSocket();
@@ -89,9 +85,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       // Log voice detection event
       console.log('Voice detected:', vadResult);
 
-      // You can implement logic here to handle voice detection
-      // For example, record violation if speech is detected during a silent exam
-      // this.handleViolation('voice_detected', `Voice detected with confidence ${vadResult.confidence.toFixed(2)}`);
+      //this.handleViolation('voice_detected', `Voice detected with confidence ${vadResult.confidence.toFixed(2)}`);
     }
   }
 
@@ -203,8 +197,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     try {
       this.videoStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: {ideal: 640},
+          height: {ideal: 480},
           facingMode: "user"
         }
       });
@@ -247,14 +241,17 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async performFaceDetection(video: HTMLVideoElement, canvas: HTMLCanvasElement): Promise<void> {
     const detections = await this.faceDetectionService.detectFaces(video);
-    const displaySize = { width: video.videoWidth, height: video.videoHeight };
+    const displaySize = {width: video.videoWidth, height: video.videoHeight};
 
     this.updateCanvas(canvas, detections, displaySize);
     this.updateFaceStatus(detections);
     await this.checkViolations(detections, video);
   }
 
-  private updateCanvas(canvas: HTMLCanvasElement, detections: any[], displaySize: { width: number; height: number }): void {
+  private updateCanvas(canvas: HTMLCanvasElement, detections: any[], displaySize: {
+    width: number;
+    height: number
+  }): void {
     faceapi.matchDimensions(canvas, displaySize);
     const ctx = canvas.getContext('2d');
     if (ctx) {
@@ -271,6 +268,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async checkViolations(detections: any[], video: HTMLVideoElement): Promise<void> {
+    console.log('Checking violations...', detections);
     if (this.numFaces && this.numFaces > 1) {
       await this.handleViolation('multiple_faces', 'Multiple faces detected');
     } else if (this.numFaces === 0) {

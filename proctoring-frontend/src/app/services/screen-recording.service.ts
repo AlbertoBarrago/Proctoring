@@ -90,7 +90,7 @@ export class ScreenRecordingService {
 
       this.mediaStream = combinedStream;
 
-      // Handle when user stops sharing
+      // Handle when a user stops sharing
       displayStream.getVideoTracks()[0].addEventListener('ended', () => {
         console.log('User stopped screen sharing');
         if (this.isRecording) {
@@ -102,7 +102,7 @@ export class ScreenRecordingService {
       this.recordedChunks = [];
       this.isRecording = true;
 
-      // Get supported MIME type
+      // Get a supported MIME type
       const mimeType = this.getBestSupportedMimeType();
 
       // Create MediaRecorder with appropriate options
@@ -296,7 +296,6 @@ export class ScreenRecordingService {
     this.isRecording = false;
     this.stopPromise = null;
     this.stopResolve = null;
-    // We don't clear recordedChunks here because we might need them for upload
   }
 
   isRecordingActive(): boolean {
