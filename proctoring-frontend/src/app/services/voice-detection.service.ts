@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { InferenceSession, Tensor, env } from 'onnxruntime-web';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 interface VADResult {
   isSpeech: boolean;
@@ -8,10 +8,24 @@ interface VADResult {
   timestamp: number;
 }
 
+interface SpeechRecognitionResult {
+  transcript: string;
+  confidence: number;
+  timestamp: number;
+}
+
+interface ViolationResult {
+  detectedWord: string;
+  transcript: string;
+  confidence: number;
+  timestamp: number;
+  severity: 'low' | 'medium' | 'high';
+}
+
 @Injectable({
   providedIn: 'root'
 })
-export class VoiceActivityDetectionService {
+export class VoiceDetectionService {
   private onnxSession: InferenceSession | null = null;
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
@@ -19,17 +33,34 @@ export class VoiceActivityDetectionService {
   private isInitialized = false;
   private isMonitoring = false;
 
+  // Speech Recognition
+  private recognition: any = null;
+  private isListening = false;
+
+  // Prohibited words configuration
+  private prohibitedWords: Set<string> = new Set([
+    'help', 'assistant', 'google', 'search', 'answer', 'cheat', 'copy', 'paste',
+    'phone', 'call', 'text', 'message', 'ask', 'tell', 'whisper'
+  ]);
+
   // Silero VAD configuration
   private readonly TARGET_SAMPLE_RATE = 16000;
-  private readonly WINDOW_SIZE_SAMPLES = 512; // 32ms window at 16kHz
+  private readonly WINDOW_SIZE_SAMPLES = 512;
   private readonly SPEECH_THRESHOLD = 0.001;
 
   // Hidden states for the RNN model
   private h: Float32Array = new Float32Array(128);
   private c: Float32Array = new Float32Array(128);
 
+  // Observables
   private vadResultSubject = new BehaviorSubject<VADResult | null>(null);
   public vadResult$ = this.vadResultSubject.asObservable();
+
+  private speechRecognitionSubject = new Subject<SpeechRecognitionResult>();
+  public speechRecognition$ = this.speechRecognitionSubject.asObservable();
+
+  private violationSubject = new Subject<ViolationResult>();
+  public violation$ = this.violationSubject.asObservable();
 
   // Debug variables
   private debugCounter = 0;
@@ -38,22 +69,145 @@ export class VoiceActivityDetectionService {
 
   constructor() {
     this.configureONNXRuntime();
+    this.initializeSpeechRecognition();
   }
 
+
   private configureONNXRuntime(): void {
-    // Configure ONNX Runtime Web paths - solo i file che esistono effettivamente
     env.wasm.wasmPaths = {
       //@ts-ignore
       'ort-wasm-simd-threaded.wasm': '/assets/ort-wasm-simd-threaded.wasm',
       'ort-wasm-simd-threaded.jsep.wasm': '/assets/ort-wasm-simd-threaded.jsep.wasm'
     };
 
-    // Set execution providers - usa CPU backend per sicurezza
     env.wasm.numThreads = 1;
     env.wasm.simd = true;
     env.wasm.proxy = false;
 
     console.log('ONNX Runtime Web configured with available WASM files');
+  }
+
+  private initializeSpeechRecognition(): void {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      console.warn('Speech Recognition not supported in this browser');
+      return;
+    }
+
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+    this.recognition.lang = 'en-US';
+    this.recognition.maxAlternatives = 3;
+
+    this.recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0].transcript.toLowerCase().trim();
+        const confidence = result[0].confidence || 0.5;
+
+        if (confidence > 0.3) { // Lower threshold for more sensitivity
+          this.checkForViolations(transcript, confidence);
+        }
+
+        console.log(`Speech result: "${transcript}" (final: ${result.isFinal}, confidence: ${confidence})`);
+
+        if (result.isFinal) {
+          const speechResult: SpeechRecognitionResult = {
+            transcript,
+            confidence,
+            timestamp: Date.now()
+          };
+
+          this.speechRecognitionSubject.next(speechResult);
+        }
+      }
+    };
+
+    this.recognition.onstart = () => {
+      console.log('Speech recognition started successfully');
+    };
+
+
+    this.recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+
+      // Restart recognition if it stops due to error
+      if (this.isListening) {
+        setTimeout(() => {
+          this.startSpeechRecognition();
+        }, 1000);
+      }
+    };
+
+    this.recognition.onend = () => {
+      console.log('Speech recognition ended');
+
+      // Restart recognition if we're still monitoring
+      if (this.isListening && this.isMonitoring) {
+        setTimeout(() => {
+          this.startSpeechRecognition();
+        }, 500);
+      }
+    };
+  }
+
+  private checkForViolations(transcript: string, confidence: number): void {
+    const words = transcript.split(/\s+/);
+    console.log(`Checking violations for: "${transcript}"`);
+    console.log(`Current prohibited words:`, Array.from(this.prohibitedWords));
+
+
+    for (const word of words) {
+      const cleanWord = word.replace(/[^\w]/g, '');
+
+      if (this.prohibitedWords.has(cleanWord)) {
+        const violation: ViolationResult = {
+          detectedWord: cleanWord,
+          transcript,
+          confidence,
+          timestamp: Date.now(),
+          severity: this.getSeverityLevel(cleanWord)
+        };
+
+        this.violationSubject.next(violation);
+        console.warn(`🚨 Prohibited word detected: "${cleanWord}" in transcript: "${transcript}"`);
+      }
+    }
+  }
+
+  private getSeverityLevel(word: string): 'low' | 'medium' | 'high' {
+    const highSeverityWords = ['help', 'assistant', 'cheat', 'answer'];
+    const mediumSeverityWords = ['google', 'search', 'ask', 'tell'];
+
+    if (highSeverityWords.includes(word)) return 'high';
+    if (mediumSeverityWords.includes(word)) return 'medium';
+    return 'low';
+  }
+
+  private startSpeechRecognition(): void {
+    if (!this.recognition || this.isListening) return;
+
+    try {
+      this.recognition.start();
+      this.isListening = true;
+      console.log('Speech recognition started');
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+    }
+  }
+
+  private stopSpeechRecognition(): void {
+    if (!this.recognition || !this.isListening) return;
+
+    try {
+      this.recognition.stop();
+      this.isListening = false;
+      console.log('Speech recognition stopped');
+    } catch (error) {
+      console.error('Error stopping speech recognition:', error);
+    }
   }
 
   async initialize(): Promise<void> {
@@ -71,7 +225,6 @@ export class VoiceActivityDetectionService {
       // Load audio worklet for real-time processing
       await this.loadAudioWorklet();
 
-      // Skip VAD model loading for now - use basic energy detection
       console.log('Using basic energy detection for voice activity');
 
       this.isInitialized = true;
@@ -106,12 +259,13 @@ export class VoiceActivityDetectionService {
     }
 
     try {
+
       // Get microphone access
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
+          echoCancellation: true,
+          noiseSuppression: true,
           autoGainControl: false,
           sampleRate: 48000
         }
@@ -127,13 +281,8 @@ export class VoiceActivityDetectionService {
         console.log('AudioContext resumed');
       }
 
-      console.log('Media stream sample rate:', this.audioContext.sampleRate);
-      console.log('AudioContext state:', this.audioContext.state);
-
       // Create audio nodes
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-      console.log('MediaStreamSource created');
-
       this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'vad-processor', {
         processorOptions: {
           targetSampleRate: this.TARGET_SAMPLE_RATE,
@@ -141,16 +290,16 @@ export class VoiceActivityDetectionService {
         }
       });
 
-      console.log('AudioWorkletNode created');
-
       // Connect audio nodes
       source.connect(this.audioWorkletNode);
-      console.log('Audio nodes connected');
 
-      // Listen for audio data from worklet
+      // Listen for audio data from the worklet
       this.audioWorkletNode.port.onmessage = (event) => {
         this.processAudioData(event.data);
       };
+
+      // Start speech recognition
+      this.startSpeechRecognition();
 
       // Reset debug counters
       this.debugCounter = 0;
@@ -158,7 +307,7 @@ export class VoiceActivityDetectionService {
       this.minRMS = Infinity;
 
       this.isMonitoring = true;
-      console.log('Voice activity monitoring started');
+      console.log('Voice activity monitoring and speech recognition started');
     } catch (error) {
       console.error('Error starting VAD monitoring:', error);
       throw error;
@@ -187,7 +336,7 @@ export class VoiceActivityDetectionService {
       // Adaptive threshold based on observed levels
       let speechThreshold = this.SPEECH_THRESHOLD;
       if (this.maxRMS > 0) {
-        speechThreshold = this.maxRMS * 0.1; // 10% of max observed RMS
+        speechThreshold = this.maxRMS * 0.1;
       }
 
       const confidence = Math.min(rms / speechThreshold, 1.0);
@@ -204,10 +353,6 @@ export class VoiceActivityDetectionService {
 
       if (this.debugCounter % 50 === 0) {
         console.log(`VAD Stats: Speech=${isSpeech}, RMS=${rms.toFixed(6)}, Threshold=${speechThreshold.toFixed(6)}, Min=${this.minRMS.toFixed(6)}, Max=${this.maxRMS.toFixed(6)}, Buffers processed=${this.debugCounter}`);
-      }
-
-      if (isSpeech) {
-        console.log(`🗣️ Speech detected! RMS=${rms.toFixed(6)}, Confidence=${confidence.toFixed(2)}`);
       }
 
     } catch (error) {
@@ -229,6 +374,9 @@ export class VoiceActivityDetectionService {
     }
 
     try {
+      // Stop speech recognition
+      this.stopSpeechRecognition();
+
       // Stop audio worklet
       if (this.audioWorkletNode) {
         this.audioWorkletNode.disconnect();
@@ -246,15 +394,40 @@ export class VoiceActivityDetectionService {
       this.c.fill(0);
 
       this.isMonitoring = false;
-      console.log('Voice activity monitoring stopped');
-      console.log(`Final stats: Min RMS=${this.minRMS.toFixed(6)}, Max RMS=${this.maxRMS.toFixed(6)}, Total buffers=${this.debugCounter}`);
+      console.log('Voice activity monitoring and speech recognition stopped');
     } catch (error) {
       console.error('Error stopping VAD monitoring:', error);
     }
   }
 
+  // Public methods for managing prohibited words
+  addProhibitedWord(word: string): void {
+    this.prohibitedWords.add(word.toLowerCase());
+  }
+
+  removeProhibitedWord(word: string): void {
+    this.prohibitedWords.delete(word.toLowerCase());
+  }
+
+  setProhibitedWords(words: string[]): void {
+    this.prohibitedWords = new Set(words.map(word => word.toLowerCase()));
+  }
+
+  getProhibitedWords(): string[] {
+    return Array.from(this.prohibitedWords);
+  }
+
+  // Observable getters
   getVADResult(): Observable<VADResult | null> {
     return this.vadResult$;
+  }
+
+  getSpeechRecognition(): Observable<SpeechRecognitionResult> {
+    return this.speechRecognition$;
+  }
+
+  getViolations(): Observable<ViolationResult> {
+    return this.violation$;
   }
 
   isCurrentlyMonitoring(): boolean {

@@ -1,160 +1,194 @@
-
 .proctoring-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
-  font-family: sans-serif;
-  max-width: 800px;
-  margin: 20px auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-h2 {
-  color: #333;
+.controls {
   margin-bottom: 20px;
 }
 
 .controls button {
+  margin-right: 10px;
   padding: 10px 20px;
-  margin: 5px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
-  transition: background-color 0.3s ease;
 }
 
-.controls button:first-of-type {
-  background-color: #28a745;
-  color: white;
-}
-.controls button:first-of-type:hover {
-  background-color: #218838;
-}
-
-.controls button:nth-of-type(2) {
-  background-color: #dc3545;
-  color: white;
-}
-.controls button:nth-of-type(2):hover {
-  background-color: #c82333;
-}
-
-.controls button:nth-of-type(3),
-.controls button:nth-of-type(4) {
-  background-color: #007bff;
-  color: white;
-}
-.controls button:nth-of-type(3):hover,
-.controls button:nth-of-type(4):hover {
-  background-color: #0056b3;
+.controls button:hover {
+  opacity: 0.8;
 }
 
 .video-container {
   position: relative;
-  width: 100%;
-  max-width: 640px;
-  margin-top: 20px;
-  background-color: black;
-  border-radius: 8px;
-  overflow: hidden;
+  display: inline-block;
+  margin-bottom: 20px;
 }
 
 .webcam-video {
-  width: 100%;
-  height: auto;
-  display: block;
-  transform: scaleX(-1);
+  width: 640px;
+  height: 480px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
 }
 
 .overlay-canvas {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  transform: scaleX(-1);
+  pointer-events: none;
 }
 
 .status-info {
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px dashed #007bff;
+  background: #f5f5f5;
+  padding: 20px;
   border-radius: 8px;
-  width: 100%;
-  max-width: 640px;
-  text-align: left;
-  background-color: #e7f0ff;
+  margin-top: 20px;
 }
 
 .status-info p {
-  margin: 5px 0;
-  color: #333;
+  margin: 10px 0;
+  font-size: 14px;
 }
 
-.violation-message {
-  color: #dc3545;
-  font-weight: bold;
-  margin-top: 10px;
-  font-size: 1.1em;
-}
-
-/* Nuove classi per il VAD che si integrano con il tuo stile */
-.speech-active {
-  color: #28a745;
-  font-weight: bold;
-  background-color: #d4edda;
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: inline-block;
-  animation: speech-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes speech-pulse {
-  0%, 100% {
-    background-color: #d4edda;
-    transform: scale(1);
-  }
-  50% {
-    background-color: #c3e6cb;
-    transform: scale(1.02);
-  }
-}
-
-.audio-confidence {
-  font-size: 0.9em;
-  color: #666;
-  margin-left: 8px;
-}
-
+/* VAD Status Styles */
 .vad-status {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-weight: bold;
-  margin-left: 8px;
+  margin-left: 10px;
 }
 
 .vad-status.ready {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: #e8f5e8;
+  color: #2d5a2d;
 }
 
 .vad-status.monitoring {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #e8f8ff;
+  color: #1e5c8a;
+  animation: pulse 2s infinite;
 }
 
 .vad-status.failed {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffe8e8;
+  color: #8a1e1e;
 }
 
 .vad-status.initializing {
+  background-color: #fff8e8;
+  color: #8a6a1e;
+}
+
+/* Speech Activity Styles */
+.speech-active {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.active {
+  color: #007bff;
+  font-weight: bold;
+}
+
+.audio-confidence {
+  color: #6c757d;
+  font-size: 12px;
+  margin-left: 5px;
+}
+
+/* Transcript Styles */
+.transcript {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  border-left: 4px solid #007bff;
+  margin: 10px 0;
+}
+
+.transcript-text {
+  font-style: italic;
+  color: #495057;
+  font-family: monospace;
+  background: #fff;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+/* Violation Message Styles */
+.violation-message {
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.violation-message.high-severity {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  animation: blink 1s infinite;
+}
+
+.violation-message.medium-severity {
   background-color: #fff3cd;
   color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.violation-message.low-severity {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+/* Audio Violations Summary */
+.audio-violations-summary {
+  background: #f8d7da;
+  padding: 8px;
+  border-radius: 4px;
+  color: #721c24;
+  font-weight: bold;
+}
+
+.last-violation {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+.total-violations {
+  background: #dc3545;
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .webcam-video {
+    width: 100%;
+    height: auto;
+  }
+
+  .controls button {
+    display: block;
+    width: 100%;
+    margin: 5px 0;
+  }
 }

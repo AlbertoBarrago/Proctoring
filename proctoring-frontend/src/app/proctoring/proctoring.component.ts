@@ -4,7 +4,7 @@ import {FormsModule} from '@angular/forms';
 import {FaceDetectionService} from '../services/face-detection.service';
 import {ScreenRecordingService} from '../services/screen-recording.service';
 import {WebSocketService} from '../services/websocket.service';
-import {VoiceActivityDetectionService} from '../services/voice-activity-detection.service';
+import {VoiceDetectionService} from '../services/voice-detection.service';
 import {Subscription} from 'rxjs';
 import * as faceapi from 'face-api.js';
 import {ProctoringService} from "../services/proctoring.service";
@@ -24,6 +24,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   private detectionInterval: any;
   private pusherSubscription: Subscription | undefined;
   private vadSubscription: Subscription | undefined;
+  private speechSubscription: Subscription | undefined;
+  private violationSubscription: Subscription | undefined;
   private violationCount: number = 0;
 
   isProctoringActive: boolean = false;
@@ -36,17 +38,30 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   violationMessage: string = '';
   pusherMessage: string = '';
 
+  // Voice Detection Properties
   vadStatus: string = 'Not initialized';
   isSpeechDetected: boolean = false;
   speechConfidence: number = 0;
   lastSpeechTime: number = 0;
+
+  // Speech Recognition Properties
+  currentTranscript: string = '';
+  speechRecognitionActive: boolean = false;
+
+  // Violation Properties
+  audioViolations: any[] = [];
+  totalViolations: number = 0;
+  lastViolationTime: number = 0;
+  lastViolationEpochTime: string = '';
+  newProhibitedWord: string = '';
+
 
   constructor(
     private proctoringService: ProctoringService,
     private faceDetectionService: FaceDetectionService,
     private screenRecordingService: ScreenRecordingService,
     private webSocketService: WebSocketService,
-    private vadService: VoiceActivityDetectionService
+    private vadService: VoiceDetectionService
   ) {
   }
 
@@ -55,6 +70,33 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.checkRecordingState();
     this.initializeVAD();
   }
+
+  testSpeechRecognition(): void {
+    console.log('Testing speech recognition...');
+    console.log('Current prohibited words:', this.vadService.getProhibitedWords());
+    console.log('VAD Status:', this.vadStatus);
+    console.log('Is monitoring:', this.vadService.isCurrentlyMonitoring());
+    console.log('Speech recognition active:', this.speechRecognitionActive);
+  }
+
+
+  getCurrentProhibitedWords(): string[] {
+    return this.vadService.getProhibitedWords();
+  }
+
+  addNewProhibitedWord(): void {
+    if (this.newProhibitedWord?.trim()) {
+      this.vadService.addProhibitedWord(this.newProhibitedWord.trim());
+      this.newProhibitedWord = '';
+      console.log('Added prohibited word:', this.newProhibitedWord);
+    }
+  }
+
+  removeProhibitedWord(word: string): void {
+    this.vadService.removeProhibitedWord(word);
+    console.log('Removed prohibited word:', word);
+  }
+
 
   private async initializeVAD(): Promise<void> {
     try {
@@ -74,19 +116,151 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         }
       });
+
+      // Subscribe to speech recognition results
+      this.speechSubscription = this.vadService.getSpeechRecognition().subscribe(result => {
+        this.currentTranscript = result.transcript;
+        this.speechRecognitionActive = true;
+        console.log('Speech recognized:', result.transcript);
+
+        // Clear transcript after 3 seconds
+        setTimeout(() => {
+          if (this.currentTranscript === result.transcript) {
+            this.currentTranscript = '';
+          }
+        }, 3000);
+      });
+
+      // Subscribe to violation detection
+      this.violationSubscription = this.vadService.getViolations().subscribe(violation => {
+        this.handleAudioViolation(violation);
+      });
+
+      // Set up prohibited words for proctoring
+      this.setupProhibitedWords();
+
     } catch (error) {
       console.error('Error initializing VAD:', error);
       this.vadStatus = 'Failed to initialize';
     }
   }
 
+  private setupProhibitedWords(): void {
+    const prohibitedWords = [
+      // Academic dishonesty
+      'help', 'assistant', 'cheat', 'answer', 'solve', 'copy', 'paste',
+      // Communication
+      'phone', 'call', 'text', 'message', 'chat', 'email',
+      // Search engines
+      'google', 'search', 'bing', 'yahoo', 'wikipedia',
+      // Social interactions
+      'ask', 'tell', 'whisper', 'mom', 'dad', 'friend',
+      // Technology
+      'laptop', 'computer', 'tablet', 'device', 'screen',
+      // Suspicious behavior
+      'look', 'check', 'find', 'browse', 'internet'
+    ];
+
+    this.vadService.setProhibitedWords(prohibitedWords);
+  }
+
   private handleVoiceDetection(vadResult: any): void {
     if (this.isProctoringActive && this.sessionId) {
-      // Log voice detection event
-      console.log('Voice detected:', vadResult);
-
-      //this.handleViolation('voice_detected', `Voice detected with confidence ${vadResult.confidence.toFixed(2)}`);
+      //console.log('Voice detected:', vadResult);
+      // Voice detection is now handled by the enhanced service
     }
+  }
+
+  private handleAudioViolation(violation: any): void {
+    console.warn('🚨 Audio violation detected:', violation);
+
+    this.audioViolations.push(violation);
+    this.totalViolations++;
+    this.lastViolationTime = violation.timestamp;
+    this.lastViolationEpochTime = new Date(violation.timestamp * 1000).toLocaleTimeString();
+
+    // Update violation message with severity styling
+    const severityEmoji = this.getSeverityEmoji(violation.severity);
+    this.violationMessage = `${severityEmoji} AUDIO VIOLATION: "${violation.detectedWord}" detected in speech`;
+
+    // Handle violation based on severity
+    this.handleViolationBySeverity(violation);
+
+    // Record violation to backend
+    if (this.sessionId) {
+      const timestamp = Math.floor((Date.now() - (this.proctoringService.sessionStartTime || Date.now())) / 1000);
+      const sessionIdString = String(this.sessionId);
+
+      this.proctoringService.recordViolation(
+        sessionIdString,
+        'audio_violation',
+        timestamp,
+        `Prohibited word "${violation.detectedWord}" detected. Transcript: "${violation.transcript}". Severity: ${violation.severity}`
+      ).subscribe({
+        next: () => console.log('Audio violation recorded:', violation.detectedWord),
+        error: (err) => console.error('Failed to record audio violation:', err)
+      });
+    }
+
+    // Clear violation message after delay based on severity
+    const clearDelay = violation.severity === 'high' ? 10000 : violation.severity === 'medium' ? 7000 : 5000;
+    setTimeout(() => {
+      if (this.violationMessage.includes(violation.detectedWord)) {
+        this.violationMessage = '';
+      }
+    }, clearDelay);
+  }
+
+  private getSeverityEmoji(severity: string): string {
+    switch (severity) {
+      case 'high':
+        return '🚨';
+      case 'medium':
+        return '⚠️';
+      case 'low':
+        return 'ℹ️';
+      default:
+        return '⚠️';
+    }
+  }
+
+  private handleViolationBySeverity(violation: any): void {
+    switch (violation.severity) {
+      case 'high':
+        // High severity: Immediate alert
+        this.showCriticalViolationAlert(violation);
+        break;
+      case 'medium':
+        // Medium severity: Warning
+        this.showWarningViolation(violation);
+        break;
+      case 'low':
+        // Low severity: Notice
+        this.showNoticeViolation(violation);
+        break;
+    }
+  }
+
+  private showCriticalViolationAlert(violation: any): void {
+    console.error('🚨 CRITICAL VIOLATION:', violation);
+    // You can add more severe actions here like:
+    // - Pausing the exam
+    // - Sending immediate notification to proctor
+    // - Flagging for review
+  }
+
+  private showWarningViolation(violation: any): void {
+    console.warn('⚠️ WARNING VIOLATION:', violation);
+    // Moderate actions like:
+    // - Incrementing warning count
+    // - Displaying warning to user
+  }
+
+  private showNoticeViolation(violation: any): void {
+    console.info('ℹ️ NOTICE VIOLATION:', violation);
+    // Light actions like:
+    // - Logging for review
+    // - Incrementing notice count
   }
 
   private checkRecordingState(): void {
@@ -185,7 +359,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.vadStatus === 'Ready') {
         await this.vadService.startMonitoring();
         this.vadStatus = 'Monitoring';
-        console.log('Voice monitoring started');
+        this.speechRecognitionActive = true;
+        console.log('Voice monitoring and speech recognition started');
       }
     } catch (error) {
       console.error('Error starting voice monitoring:', error);
@@ -284,16 +459,22 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     if (direction !== 'looking-forward' && direction !== 'no-face') {
       await this.handleViolation('looking_away', `Looking ${direction}`);
     } else {
-      this.violationMessage = '';
+      // Only clear violation message if it's not an audio violation
+      if (!this.violationMessage.includes('AUDIO VIOLATION')) {
+        this.violationMessage = '';
+      }
     }
   }
 
   private async handleViolation(type: string, details: string): Promise<void> {
-    this.violationMessage = `VIOLATION: ${details}`;
+    // Don't overwrite audio violations with face violations
+    if (!this.violationMessage.includes('AUDIO VIOLATION')) {
+      this.violationMessage = `VIOLATION: ${details}`;
+    }
+
     this.violationCount++;
     if (this.violationCount % 5 === 0 && this.sessionId) {
       const timestamp = Math.floor((Date.now() - (this.proctoringService.sessionStartTime || Date.now())) / 1000);
-      console.log(timestamp)
       const sessionIdString = String(this.sessionId);
       this.proctoringService.recordViolation(sessionIdString, type, timestamp, details).subscribe({
         next: () => console.log('Violation recorded:', type),
@@ -359,6 +540,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.vadService.isCurrentlyMonitoring()) {
       this.vadService.stopMonitoring();
       this.vadStatus = 'Stopped';
+      this.speechRecognitionActive = false;
+      this.currentTranscript = '';
     }
   }
 
@@ -409,6 +592,10 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.violationMessage = '';
     this.violationCount = 0;
     this.vadStatus = 'Ready';
+    this.speechRecognitionActive = false;
+    this.currentTranscript = '';
+    this.audioViolations = [];
+    this.totalViolations = 0;
   }
 
   ngOnDestroy(): void {
@@ -418,6 +605,12 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     if (this.vadSubscription) {
       this.vadSubscription.unsubscribe();
+    }
+    if (this.speechSubscription) {
+      this.speechSubscription.unsubscribe();
+    }
+    if (this.violationSubscription) {
+      this.violationSubscription.unsubscribe();
     }
     this.webSocketService.disconnect();
     this.vadService.cleanup();

@@ -51,13 +51,12 @@ export class ScreenRecordingService {
 
       console.log('Requesting screen sharing permission...');
 
-      // Request screen sharing with correct TypeScript types
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: true, // Use simple boolean to avoid TypeScript errors
         audio: false // Request audio separately
       });
 
-      console.log('Screen sharing permission granted.');
+     // console.log('Screen sharing permission granted.');
 
       // Try to get audio separately (this might fail, which is ok)
       let audioStream: MediaStream | null = null;
@@ -65,7 +64,11 @@ export class ScreenRecordingService {
         audioStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
-            noiseSuppression: true
+            noiseSuppression: true,
+            sampleRate: 44100,
+            sampleSize: 16,
+            channelCount: 2,
+            deviceId: 'default'
           },
           video: false
         });
