@@ -70,7 +70,6 @@ export class FaceDetectionService {
       const nose = landmarks.getNose();
       const jawOutline = landmarks.getJawOutline();
 
-      // Calcola il centro del viso usando i punti della mascella
       const faceCenter = {
         x: jawOutline.reduce((sum, point) => sum + point.x, 0) / jawOutline.length,
         y: jawOutline.reduce((sum, point) => sum + point.y, 0) / jawOutline.length

@@ -142,7 +142,6 @@ class ProctoringController extends Controller
         }
     }
 
-
     public function endSession(Request $request): JsonResponse
     {
         try {
