@@ -47,6 +47,7 @@ export class VoiceDetectionService {
   private readonly TARGET_SAMPLE_RATE = 16000;
   private readonly WINDOW_SIZE_SAMPLES = 512;
   private readonly SPEECH_THRESHOLD = 0.001;
+  private readonly ANALYZER_THRESHOLD = 0.3;
 
   // Hidden states for the RNN model
   private h: Float32Array = new Float32Array(128);
@@ -105,9 +106,9 @@ export class VoiceDetectionService {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript.toLowerCase().trim();
-        const confidence = result[0].confidence || 0.3;
+        const confidence = result[0].confidence || this.ANALYZER_THRESHOLD;
 
-        if (confidence > 0.3) {
+        if (confidence > this.ANALYZER_THRESHOLD) {
           this.checkForViolations(transcript, confidence);
         }
 
