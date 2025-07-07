@@ -1,26 +1,15 @@
-# Project Title (Replace with Actual Project Name)
-
-**Note:** Please replace placeholders like "Project Title", "Project Description", and any other bracketed information with the actual details of your project.
+# AI-Proctoring
 
 ## Project Description
 
-[Provide a clear and concise description of the project. Explain its purpose, what problem it solves, and its key features.]
-
-For example:
-
-> This project is a web-based proctoring application designed to monitor students during online exams. It utilizes webcam and microphone access to detect potentially suspicious behavior and ensure academic integrity.
+> This project is a web-based proctoring application designed to monitor students during online exams. It uses webcam and microphone access to detect potentially suspicious behavior and ensure academic integrity.
 
 ## Features and Capabilities
-
-*   [List the main features of your project. Be specific and highlight what makes your project valuable.]
-
-Example:
 
 *   **Real-time Webcam Monitoring:** Records student video during the exam.
 *   **Audio Analysis:** Detects unusual sounds or voices in the exam environment.
 *   **Screen Recording:** Optionally records the student's screen activity.
 *   **Data Storage:** Securely stores collected data for review.
-*   **User Interface:** Provides a user-friendly interface for both students and proctors.
 
 ## Technologies Used
 
@@ -51,15 +40,12 @@ Example:
 
 3.  **Configure environment variables:**
 
-    [If you have environment variables, explain how to configure them.  For example, you might need to create a `.env` file and populate it with API keys or database connection details.]
-
     Example:
 
     > Copy `.env.example` to `.env` and update the values with your specific configuration.
 
     ```bash
     cp .env.example .env
-    # Edit .env with your settings
     ```
 
 4.  **Build the assets (if necessary):**
@@ -71,27 +57,28 @@ Example:
     ```bash
     npm run dev # For development
     ```
+## DB 
+Create a new DB `proctoring_db` and add the Table.
+
+## Server
+
+1. *Start the Laravel API server*
+    ```bash 
+    php artisan serve
+    ```
 
 ## Usage
 
 1.  **Start the development server (if applicable):**
 
     ```bash
-    npm run dev
+    npm run start
     ```
 
 2.  **Access the application in your browser:**
 
-    [Provide the URL where the application is accessible.  For example: `http://localhost:5173`]
+    `http://localhost:4200`
 
-3.  **Specific instructions for different user roles (if applicable):**
-
-    [Explain how different users (e.g., students, proctors, administrators) can use the application.  Provide examples of common tasks and how to perform them.]
-
-    Example:
-
-    *   **Students:** Follow the on-screen instructions to enable webcam and microphone access before starting the exam.
-    *   **Proctors:** Log in to the dashboard to monitor student activity in real-time.
 
 ## Project Structure
 
@@ -118,8 +105,6 @@ Example:
 
 ## Contributing
 
-[Include guidelines for contributing to the project. This section is optional, but it's highly recommended if you want to encourage collaboration.]
-
 Example:
 
 > We welcome contributions to this project! To contribute, please follow these steps:
@@ -133,8 +118,4 @@ Example:
 
 ## License
 
-[Specify the license under which the project is released. If you don't have a specific license, you can use a standard open-source license like MIT or Apache 2.0.]
-
-Example:
-
-> This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+> This project is licensed under the ABCL-2025. see the [LICENSE](LICENSE) file for details.
