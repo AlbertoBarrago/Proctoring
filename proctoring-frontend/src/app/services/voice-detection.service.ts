@@ -80,7 +80,7 @@ export class VoiceDetectionService {
       'ort-wasm-simd-threaded.jsep.wasm': '/assets/ort-wasm-simd-threaded.jsep.wasm'
     };
 
-    env.wasm.numThreads = 1;
+    env.wasm.numThreads = 2;
     env.wasm.simd = true;
     env.wasm.proxy = false;
 
@@ -105,9 +105,9 @@ export class VoiceDetectionService {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript.toLowerCase().trim();
-        const confidence = result[0].confidence || 0.5;
+        const confidence = result[0].confidence || 0.3;
 
-        if (confidence > 0.3) { // Lower threshold for more sensitivity
+        if (confidence > 0.3) {
           this.checkForViolations(transcript, confidence);
         }
 
@@ -133,7 +133,6 @@ export class VoiceDetectionService {
     this.recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
 
-      // Restart recognition if it stops due to error
       if (this.isListening) {
         setTimeout(() => {
           this.startSpeechRecognition();
@@ -155,12 +154,12 @@ export class VoiceDetectionService {
 
   private checkForViolations(transcript: string, confidence: number): void {
     const words = transcript.split(/\s+/);
-    console.log(`Checking violations for: "${transcript}"`);
-    console.log(`Current prohibited words:`, Array.from(this.prohibitedWords));
+    //console.log(`Checking violations for: "${transcript}"`);
+    //console.log(`Current prohibited words:`, Array.from(this.prohibitedWords));
 
 
     for (const word of words) {
-      const cleanWord = word.replace(/[^\w]/g, '');
+      const cleanWord = word.replace(/\W/g, '');
 
       if (this.prohibitedWords.has(cleanWord)) {
         const violation: ViolationResult = {
@@ -218,11 +217,9 @@ export class VoiceDetectionService {
     try {
       console.log('Initializing VAD service...');
 
-      // Create AudioContext
       this.audioContext = new AudioContext();
       console.log('AudioContext created with sample rate:', this.audioContext.sampleRate);
 
-      // Load audio worklet for real-time processing
       await this.loadAudioWorklet();
 
       console.log('Using basic energy detection for voice activity');

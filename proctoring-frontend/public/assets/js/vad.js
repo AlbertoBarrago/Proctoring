@@ -89,13 +89,12 @@ class VADProcessor extends AudioWorkletProcessor {
       this.bufferIndex++;
 
       if (this.bufferIndex >= this.bufferSize) {
-        // Send complete buffer to main thread
+        // Send the complete buffer to the main thread
         const bufferCopy = new Float32Array(this.buffer);
         this.port.postMessage(bufferCopy);
         this.buffersSent++;
         this.bufferIndex = 0;
 
-        // Debug per i primi buffer
         if (this.buffersSent <= 5) {
           console.log(`AudioWorklet: Sent buffer ${this.buffersSent}, size: ${bufferCopy.length}`);
         }
