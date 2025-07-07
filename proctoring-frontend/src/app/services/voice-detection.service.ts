@@ -349,9 +349,9 @@ export class VoiceDetectionService {
 
       this.vadResultSubject.next(vadResult);
 
-      if (this.debugCounter % 50 === 0) {
+     /* if (this.debugCounter % 50 === 0) {
         console.log(`VAD Stats: Speech=${isSpeech}, RMS=${rms.toFixed(6)}, Threshold=${speechThreshold.toFixed(6)}, Min=${this.minRMS.toFixed(6)}, Max=${this.maxRMS.toFixed(6)}, Buffers processed=${this.debugCounter}`);
-      }
+      }*/
 
     } catch (error) {
       console.error('Error processing audio data:', error);
