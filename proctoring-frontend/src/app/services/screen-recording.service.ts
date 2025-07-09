@@ -16,7 +16,6 @@ export class ScreenRecordingService {
    * Gets the best supported MIME type for recording
    */
   private getBestSupportedMimeType(): string {
-    // Simplified list of MIME types that are widely supported
     const mimeTypes = [
       'video/webm',
       'video/mp4',

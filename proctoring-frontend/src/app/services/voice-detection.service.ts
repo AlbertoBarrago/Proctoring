@@ -1,26 +1,7 @@
 import { Injectable } from '@angular/core';
-import { InferenceSession, Tensor, env } from 'onnxruntime-web';
+import { InferenceSession, env } from 'onnxruntime-web';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-
-interface VADResult {
-  isSpeech: boolean;
-  confidence: number;
-  timestamp: number;
-}
-
-interface SpeechRecognitionResult {
-  transcript: string;
-  confidence: number;
-  timestamp: number;
-}
-
-interface ViolationResult {
-  detectedWord: string;
-  transcript: string;
-  confidence: number;
-  timestamp: number;
-  severity: 'low' | 'medium' | 'high';
-}
+import {VADResult, ViolationResult, SpeechRecognitionResult} from "../interfaces";
 
 @Injectable({
   providedIn: 'root'
