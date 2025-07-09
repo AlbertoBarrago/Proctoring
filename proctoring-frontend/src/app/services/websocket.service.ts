@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import Pusher from "pusher-js";
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WebSocketService {
   private pusher: Pusher | null = null;
-  private PUSHER_APP_KEY = process.env['PUSHER_APP_KEY'] || '';
-  private PUSHER_APP_CLUSTER = 'eu';
+  private PUSHER_APP_KEY = environment.pusher.key;
+  private PUSHER_APP_CLUSTER = environment.pusher.cluster;
 
   constructor() { }
   connect(): void {

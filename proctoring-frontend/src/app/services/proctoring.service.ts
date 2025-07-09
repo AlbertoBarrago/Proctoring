@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {catchError, Observable, tap} from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProctoringService {
-  private apiUrl = 'http://localhost:8000/api/proctoring';
+  private apiUrl = `${environment.apiUrl}/proctoring`;
   public sessionStartTime: number = 0;
 
   constructor(private http: HttpClient) { }
