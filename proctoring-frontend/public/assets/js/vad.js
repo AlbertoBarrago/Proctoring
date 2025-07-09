@@ -1,4 +1,18 @@
+/**
+ * @class VADProcessor
+ * @extends AudioWorkletProcessor
+ *
+ * This class is a custom AudioWorkletProcessor for Voice Activity Detection (VAD).
+ * It processes audio data, resamples it to a target sample rate, and sends it to the main thread in fixed-size buffers.
+ */
 class VADProcessor extends AudioWorkletProcessor {
+  /**
+   * @constructor
+   * @param {object} options - The options for the processor.
+   * @param {object} options.processorOptions - The options for the processor.
+   * @param {number} options.processorOptions.targetSampleRate - The target sample rate for the audio data.
+   * @param {number} options.processorOptions.sourceSampleRate - The source sample rate of the audio data.
+   */
   constructor(options) {
     super();
 
@@ -20,6 +34,13 @@ class VADProcessor extends AudioWorkletProcessor {
     console.log(`VAD Processor initialized: ${this.sourceSampleRate}Hz -> ${this.targetSampleRate}Hz (ratio: ${this.resampleRatio.toFixed(2)})`);
   }
 
+  /**
+   * This method is called by the audio worklet system to process audio data.
+   * @param {Array<Array<Float32Array>>} inputs - The input audio data.
+   * @param {Array<Array<Float32Array>>} outputs - The output audio data.
+   * @param {object} parameters - The parameters for the processor.
+   * @returns {boolean} - Always returns true to keep the processor alive.
+   */
   process(inputs, outputs, parameters) {
     this.processCallCount++;
 
@@ -28,7 +49,7 @@ class VADProcessor extends AudioWorkletProcessor {
     if (input && input.length > 0 && input[0]) {
       const inputChannel = input[0];
 
-      // Debug logging ogni 1000 chiamate
+      // Debug logging every 1000 calls
       if (this.processCallCount % 1000 === 0) {
         console.log(`AudioWorklet: Processed ${this.processCallCount} calls, sent ${this.buffersSent} buffers, input size: ${inputChannel.length}`);
       }
@@ -36,7 +57,6 @@ class VADProcessor extends AudioWorkletProcessor {
       // Process audio for VAD with resampling
       this.processAudioForVAD(inputChannel);
     } else {
-      // Log se non riceviamo input
       if (this.processCallCount % 1000 === 0) {
         console.log(`AudioWorklet: No input data at call ${this.processCallCount}`);
       }
@@ -45,6 +65,11 @@ class VADProcessor extends AudioWorkletProcessor {
     return true;
   }
 
+  /**
+   * This method processes the audio data for VAD.
+   * It resamples the audio data if necessary and adds it to the buffer.
+   * @param {Float32Array} audioData - The audio data to process.
+   */
   processAudioForVAD(audioData) {
     if (!audioData || audioData.length === 0) {
       return;
@@ -61,6 +86,11 @@ class VADProcessor extends AudioWorkletProcessor {
     }
   }
 
+  /**
+   * This method resamples the audio data using linear interpolation.
+   * @param {Float32Array} inputData - The input audio data to resample.
+   * @returns {Float32Array} - The resampled audio data.
+   */
   resample(inputData) {
     if (inputData.length === 0) return new Float32Array(0);
 
@@ -83,6 +113,11 @@ class VADProcessor extends AudioWorkletProcessor {
     return output;
   }
 
+  /**
+   * This method adds audio data to the buffer.
+   * When the buffer is full, it sends the buffer to the main thread.
+   * @param {Float32Array} audioData - The audio data to add to the buffer.
+   */
   addToBuffer(audioData) {
     for (let i = 0; i < audioData.length; i++) {
       this.buffer[this.bufferIndex] = audioData[i];
