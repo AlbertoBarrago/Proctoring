@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\PusherEvent;
 use App\Interfaces\ProctoringRepositoryInterface;
-use App\Models\User;
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Request;
