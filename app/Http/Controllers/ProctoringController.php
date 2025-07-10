@@ -76,17 +76,16 @@ class ProctoringController extends Controller
             $directory = 'recordings/' . $sessionId;
             Storage::makeDirectory('public/' . $directory);
 
-            // Determine file extension based on MIME type
+            // Determine file extension based on the MIME type
             $extension = $chunk->getClientOriginalExtension();
             if (empty($extension)) {
-                // Fallback if getClientOriginalExtension is empty (e.g., for some blobs)
                 $mimeType = $chunk->getMimeType();
                 if ($mimeType === 'video/webm') {
                     $extension = 'webm';
                 } elseif ($mimeType === 'video/mp4') {
                     $extension = 'mp4';
                 } else {
-                    $extension = 'bin'; // Default to binary if type is unknown
+                    $extension = 'bin';
                 }
             }
             $filename = uniqid('chunk_') . '.' . $extension;

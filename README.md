@@ -1,121 +1,124 @@
-# AI-Proctoring
+# AI-Proctoring Backend
 
-## Project Description
+## Project Overview
 
-> This project is a web-based proctoring application designed to monitor students during online exams. It uses webcam and microphone access to detect potentially suspicious behavior and ensure academic integrity.
+This project provides the backend infrastructure for a web-based proctoring application. Its primary function is to monitor students during online examinations by processing real-time data from webcams and microphones, thereby ensuring academic integrity.
 
-## Features and Capabilities
+## Features
 
-*   **Real-time Webcam Monitoring:** Records student video during the exam.
-*   **Audio Analysis:** Detects unusual sounds or voices in the exam environment.
-*   **Screen Recording:** Optionally records the student's screen activity.
-*   **Data Storage:** Securely stores collected data for review.
+*   **Real-time Monitoring:** Captures and processes webcam and microphone data during online exams.
+*   **Behavioral Analysis:** Detects unusual patterns or suspicious activities through audio and video analysis.
+*   **Secure Data Handling:** Manages and stores collected proctoring data securely for review and auditing purposes.
+*   **Scalable Architecture:** Designed to handle multiple concurrent proctoring sessions efficiently.
 
 ## Technologies Used
 
-*   JavaScript
-*   HTML
-*   TypeScript
-*   CSS
-*   onnxruntime-web: ^1.22.0
-*   Vite
-*   Tailwind CSS
-*   Laravel Vite Plugin
-*   Axios
+### Backend
+*   **PHP:** Core programming language.
+*   **Laravel:** Web application framework for robust API development.
+*   **Composer:** Dependency management for PHP.
+
+### Frontend (Refer to `proctoring-frontend/README.md` for details)
+*   **JavaScript, TypeScript, HTML, CSS:** Core web technologies.
+*   **Vite:** Frontend build tool.
+*   **Tailwind CSS:** Utility-first CSS framework.
+*   **Axios:** Promise-based HTTP client.
+*   **ONNX Runtime Web:** For client-side AI model inference (e.g., `onnxruntime-web: ^1.22.0`).
 
 ## Installation
 
-1.  **Clone the repository:**
+To set up the project locally, follow these steps:
 
+1.  **Clone the repository:**
     ```bash
-    git clone [Your Repository URL]
-    cd [Project Directory Name]
+    git clone https://github.com/your-username/AI-Proctoring.git # Replace with your actual repository URL
+    cd AI-Proctoring
     ```
 
-2.  **Install dependencies:**
+2.  **Install PHP Dependencies:**
+    ```bash
+    composer install
+    ```
 
+3.  **Install Node.js Dependencies (for frontend assets):**
     ```bash
     npm install
     ```
 
-3.  **Configure environment variables:**
-
-    Example:
-
-    > Copy `.env.example` to `.env` and update the values with your specific configuration.
-
+4.  **Environment Configuration:**
+    Copy the example environment file and generate an application key:
     ```bash
     cp .env.example .env
+    php artisan key:generate
+    ```
+    Edit the `.env` file to configure your database connection and other settings. Ensure `DB_DATABASE` is set to `proctoring_db` or your preferred database name.
+
+5.  **Database Setup:**
+    Create a new database named `proctoring_db` (or as configured in `.env`). Then, run migrations to set up the database tables:
+    ```bash
+    php artisan migrate
     ```
 
-4.  **Build the assets (if necessary):**
-
+6.  **Build Frontend Assets:**
+    For development:
+    ```bash
+    npm run dev
+    ```
+    For production:
     ```bash
     npm run build
-    ```
-    or
-    ```bash
-    npm run dev # For development
-    ```
-## DB 
-Create a new DB `proctoring_db` and add the Table.
-
-## Server
-
-1. *Start the Laravel API server*
-    ```bash 
-    php artisan serve
     ```
 
 ## Usage
 
-1.  **Start the development server (if applicable):**
+### Starting the Backend Server
 
-    ```bash
-    npm run start
-    ```
+To start the Laravel development server:
+```bash
+php artisan serve
+```
+The API will typically be accessible at `http://127.0.0.1:8000`.
 
-2.  **Access the application in your browser:**
+### Running the Frontend
 
-    `http://localhost:4200`
-
+Navigate to the `proctoring-frontend` directory and follow its `README.md` instructions to run the frontend application. The frontend is typically served on `http://localhost:4200`.
 
 ## Project Structure
 
 ```
-[Project Directory Name]/
-├── README.md
-├── composer.json
-├── package-lock.json
-├── package.json
-├── vite.config.js
-├── proctoring-frontend/  # Likely contains the frontend code
-│   ├── [Add key files and directories within this folder]
-├── resources/         # Likely contains assets, views, or other resources
-│   ├── [Add key files and directories within this folder]
+.
+├── README.md                 # Project documentation
+├── app/                      # Laravel application core (Models, Controllers, Providers, etc.)
+├── bootstrap/                # Framework bootstrapping
+├── config/                   # Configuration files
+├── database/                 # Database migrations, seeders, and factories
+├── public/                   # Web server entry point
+├── resources/                # Frontend assets (CSS, JS) and Blade templates
+├── routes/                   # API and web routes
+├── storage/                  # Application generated files (logs, cache, sessions)
+├── tests/                    # Automated tests
+├── vendor/                   # Composer dependencies
+├── proctoring-frontend/      # Separate directory for the frontend application
+│   ├── src/                  # Frontend source code (Angular, TypeScript, etc.)
+│   ├── public/               # Frontend public assets
+│   └── ...
+├── composer.json             # PHP dependencies
+├── package.json              # Node.js dependencies and scripts
+├── vite.config.js            # Vite configuration
 └── ...
 ```
 
-*   **`README.md`:** This file (project documentation).
-*   **`composer.json`:** PHP dependencies (Likely backend component)
-*   **`package.json`:** Node.js dependencies and scripts.
-*   **`vite.config.js`:** Vite configuration file.
-*   **`proctoring-frontend/`:** Contains the frontend code, likely built with JavaScript, TypeScript, HTML, and CSS.
-*   **`resources/`:** Contains assets, views, or other resources used by the application.  This directory's content will vary significantly depending on the specific implementation.
-
 ## Contributing
 
-Example:
+We welcome contributions to this project! To contribute, please follow these steps:
 
-> We welcome contributions to this project! To contribute, please follow these steps:
->
-> 1.  Fork the repository.
-> 2.  Create a new branch for your feature or bug fix.
-> 3.  Make your changes and commit them with clear, descriptive messages.
-> 4.  Submit a pull request.
->
-> Please ensure that your code adheres to the project's coding style and includes appropriate unit tests.
+1.  Fork the repository.
+2.  Create a new branch for your feature or bug fix.
+3.  Make your changes and commit them with clear, descriptive messages.
+4.  Submit a pull request.
+
+Please ensure that your code adheres to the project's coding style and includes appropriate unit tests.
 
 ## License
 
-> This project is licensed under the ABCL-2025. see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
