@@ -153,8 +153,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       'phone', 'call', 'text', 'message', 'chat', 'email',
       // Search engines
       'google', 'search', 'bing', 'yahoo', 'wikipedia',
-      // Social interactions
-      'ask', 'tell', 'whisper', 'mom', 'dad', 'friend',
       // Technology
       'laptop', 'computer', 'tablet', 'device', 'screen',
       // Suspicious behavior

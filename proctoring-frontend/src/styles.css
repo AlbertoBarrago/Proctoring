@@ -1,4 +1,30 @@
 /* You can add global styles to this file, and also import other style files */
+/*-- Google Fonts Import --*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/*-- Dark Theme High-Contrast & Modern Color Palette --*/
+:root {
+  --primary-color: #3b82f6;
+  --primary-color-dark: #2563eb;
+  --primary-color-light: #1e40af; /* Darker for disabled state background */
+  --danger-color: #ef4444;
+  --danger-color-dark: #dc2626;
+  --success-color: #22c55e;
+  --warning-color: #f59e0b;
+  --info-color: #38bdf8;
+
+  --background-color: #111827; /* slate-900 */
+  --card-background: #1f2937;   /* slate-800 */
+  --text-color: #f3f4f6;       /* slate-100 */
+  --text-light-color: #9ca3af;  /* slate-400 */
+  --border-color: #374151;     /* slate-700 */
+  --white: #ffffff;
+
+  --font-family: 'Inter', sans-serif;
+  --border-radius: 10px;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
 body, html {
   background-color: #0a0a0a;
   color: white;

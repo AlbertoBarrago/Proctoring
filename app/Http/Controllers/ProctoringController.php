@@ -41,10 +41,12 @@ class ProctoringController extends Controller
 
     public function uploadChunk(Request $request): JsonResponse
     {
-        Log::info('Upload request received', [
+        Log::info('Upload attempt', [
             'has_file' => $request->hasFile('recording_chunk'),
-            'all_inputs' => $request->all(),
-            'files' => $request->allFiles()
+            'files' => $request->allFiles(),
+            'post_max_size' => ini_get('post_max_size'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'content_length' => $request->header('content-length')
         ]);
 
         try {
@@ -74,7 +76,27 @@ class ProctoringController extends Controller
             $directory = 'recordings/' . $sessionId;
             Storage::makeDirectory('public/' . $directory);
 
-            $path = $chunk->store($directory, 'public');
+            // Determine file extension based on MIME type
+            $extension = $chunk->getClientOriginalExtension();
+            if (empty($extension)) {
+                // Fallback if getClientOriginalExtension is empty (e.g., for some blobs)
+                $mimeType = $chunk->getMimeType();
+                if ($mimeType === 'video/webm') {
+                    $extension = 'webm';
+                } elseif ($mimeType === 'video/mp4') {
+                    $extension = 'mp4';
+                } else {
+                    $extension = 'bin'; // Default to binary if type is unknown
+                }
+            }
+            $filename = uniqid('chunk_') . '.' . $extension;
+            $path = $chunk->storeAs($directory, $filename, 'public');
+            Log::info('File uploaded', [
+                'path' => $path,
+                'directory' => $directory,
+                'filename' => $filename,
+                'session_id' => $sessionId,
+            ]);
 
             if (!$path) {
                 throw new Exception('Failed to store file');

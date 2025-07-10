@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root'
@@ -215,12 +216,12 @@ export class ScreenRecordingService {
         formData.append('session_id', sessionId);
         formData.append('chunk_index', i.toString());
         formData.append('total_chunks', chunks.toString());
-        formData.append('recording_chunk', file);
+        formData.append('recording_chunk', chunkBlob, `chunk-${i}.${fileExtension}`);
 
         console.log(`Uploading chunk ${i+1}/${chunks}, size: ${file.size} bytes`);
 
         try {
-          const response = await fetch('http://localhost:8000/api/proctoring/upload-chunk', {
+          const response = await fetch(`${environment.API_URL}/proctoring/upload-chunk`, {
             method: 'POST',
             headers: {
               'Accept': 'application/json',
