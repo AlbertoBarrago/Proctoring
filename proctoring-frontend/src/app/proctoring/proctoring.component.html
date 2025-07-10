@@ -1,8 +1,9 @@
 <div class="proctoring-container">
-  <h1>AI Proctoring System</h1>
+  <h1>AI Proctoring Dashboard</h1>
 
-  <!-- Session Information -->
-  <div class="session-info">
+  <!-- Session & Status -->
+  <div class="card session-info">
+    <h2>Session Status</h2>
     <div class="status-grid">
       <div class="status-item">
         <span class="status-label">Session:</span>
@@ -13,12 +14,10 @@
           'status-error': sessionStatus.includes('error') || sessionStatus.includes('Failed')
         }">{{ sessionStatus }}</span>
       </div>
-
       <div class="status-item" *ngIf="sessionId">
         <span class="status-label">Session ID:</span>
         <span class="status-value">{{ sessionId }}</span>
       </div>
-
       <div class="status-item">
         <span class="status-label">Face Detection:</span>
         <span class="status-value" [ngClass]="{
@@ -27,7 +26,6 @@
           'status-error': faceDetectionStatus.includes('Failed')
         }">{{ faceDetectionStatus }}</span>
       </div>
-
       <div class="status-item">
         <span class="status-label">Voice Detection:</span>
         <span class="status-value" [ngClass]="{
@@ -37,7 +35,6 @@
           'status-error': vadStatus.includes('Failed')
         }">{{ vadStatus }}</span>
       </div>
-
       <div class="status-item">
         <span class="status-label">Screen Recording:</span>
         <span class="status-value" [ngClass]="{
@@ -48,168 +45,105 @@
     </div>
   </div>
 
-  <!-- Prohibited Words Management -->
-  <div class="prohibited-words-section" *ngIf="isProctoringActive">
-    <h3>Prohibited Words Management</h3>
-
-    <div class="word-input-section">
-      <input
-        type="text"
-        [(ngModel)]="newProhibitedWord"
-        placeholder="Enter prohibited word"
-        class="word-input"
-        (keyup.enter)="addNewProhibitedWord()"
-      >
-      <button
-        (click)="addNewProhibitedWord()"
-        [disabled]="!newProhibitedWord"
-        class="btn btn-add"
-      >
-        Add Word
-      </button>
-    </div>
-
-    <div class="current-words">
-      <h4>Current Prohibited Words ({{ getCurrentProhibitedWords().length }})</h4>
-      <div class="words-list">
-        <span
-          *ngFor="let word of getCurrentProhibitedWords()"
-          class="word-tag"
-        >
-          {{ word }}
-          <button
-            (click)="removeProhibitedWord(word)"
-            class="remove-word-btn"
-            title="Remove word"
-          >
-            ×
-          </button>
-        </span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Control Buttons -->
+  <!-- Controls -->
   <div class="controls">
-    <button
-      (click)="startProctoring()"
-      [disabled]="isProctoringActive"
-      class="btn btn-primary"
-    >
-      Start Proctoring
-    </button>
-
-   <!-- <button
-      (click)="testSpeechRecognition()"
-      class="btn btn-secondary">
-      Test Speech Recognition
-    </button>-->
-
-    <button
-      (click)="endProctoring()"
-      [disabled]="!isProctoringActive"
-      class="btn btn-danger"
-    >
-      End Proctoring
-    </button>
-
-
+    <button (click)="startProctoring()" [disabled]="isProctoringActive" class="btn btn-primary">Start Proctoring</button>
+    <button (click)="endProctoring()" [disabled]="!isProctoringActive" class="btn btn-danger">End Proctoring</button>
   </div>
 
-  <!-- Video and Canvas Container -->
-  <div class="video-container" *ngIf="isProctoringActive">
-    <div class="video-wrapper">
-      <video
-        #videoElement
-        autoplay
-        muted
-        playsinline
-        class="video-element"
-      ></video>
-      <canvas
-        #overlayCanvas
-        class="overlay-canvas"
-      ></canvas>
-    </div>
+  <div class="grid-container" *ngIf="isProctoringActive">
 
-    <!-- Detection Info -->
-    <div class="detection-info">
-      <div class="info-item">
-        <span class="info-label">Faces Detected:</span>
-        <span class="info-value">{{ numFaces || 0 }}</span>
+    <!-- Left Column -->
+    <div class="grid-item">
+      <!-- Video Feed -->
+      <div class="card video-container">
+        <h2>Live Feed</h2>
+        <div class="video-wrapper">
+          <video #videoElement autoplay muted playsinline class="video-element"></video>
+          <canvas #overlayCanvas class="overlay-canvas"></canvas>
+        </div>
+        <div class="detection-info">
+          <div class="info-item">
+            <span class="info-label">Faces Detected:</span>
+            <span class="info-value">{{ numFaces || 0 }}</span>
+          </div>
+          <div class="info-item" *ngIf="faceDirection">
+            <span class="info-label">Face Direction:</span>
+            <span class="info-value">{{ faceDirection }}</span>
+          </div>
+        </div>
       </div>
 
-      <div class="info-item" *ngIf="faceDirection">
-        <span class="info-label">Face Direction:</span>
-        <span class="info-value">{{ faceDirection }}</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Voice Detection Info -->
-  <div class="voice-info" *ngIf="isProctoringActive">
-    <h3>Voice Monitoring</h3>
-
-    <div class="voice-status">
-      <div class="voice-item">
-        <span class="voice-label">Speech Detected:</span>
-        <span class="voice-value" [ngClass]="{
-          'speech-active': isSpeechDetected,
-          'speech-inactive': !isSpeechDetected
-        }">{{ isSpeechDetected ? 'Yes' : 'No' }}</span>
-      </div>
-
-      <div class="voice-item" *ngIf="speechConfidence > 0">
-        <span class="voice-label">Confidence:</span>
-        <span class="voice-value">{{ (speechConfidence * 100) | number:'1.1-1' }}%</span>
-      </div>
-
-      <div class="voice-item" *ngIf="speechRecognitionActive">
-        <span class="voice-label">Speech Recognition:</span>
-        <span class="voice-value status-active">Active</span>
+      <!-- Prohibited Words -->
+      <div class="card prohibited-words-section">
+        <h3>Prohibited Words Management</h3>
+        <div class="word-input-section">
+          <input type="text" [(ngModel)]="newProhibitedWord" placeholder="Enter prohibited word" class="word-input" (keyup.enter)="addNewProhibitedWord()">
+          <button (click)="addNewProhibitedWord()" [disabled]="!newProhibitedWord" class="btn btn-add">Add Word</button>
+        </div>
+        <div class="current-words">
+          <h4>Current Prohibited Words ({{ getCurrentProhibitedWords().length }})</h4>
+          <div class="words-list">
+            <span *ngFor="let word of getCurrentProhibitedWords()" class="word-tag">
+              {{ word }}
+              <button (click)="removeProhibitedWord(word)" class="remove-word-btn" title="Remove word">×</button>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Current Transcript -->
-    <div class="transcript-section" *ngIf="currentTranscript">
-      <h4>Current Transcript:</h4>
-      <div class="transcript">{{ currentTranscript }}</div>
-    </div>
-  </div>
-
-  <!-- Violations Section -->
-  <div class="violations-section" *ngIf="isProctoringActive">
-    <h3>Violations Summary</h3>
-
-    <div class="violation-stats">
-      <div class="stat-item">
-        <span class="stat-label">Total Violations:</span>
-        <span class="stat-value">{{ totalViolations }}</span>
+    <!-- Right Column -->
+    <div class="grid-item">
+      <!-- Voice Monitoring -->
+      <div class="card voice-info">
+        <h3>Voice Monitoring</h3>
+        <div class="voice-status">
+          <div class="voice-item">
+            <span class="voice-label">Speech Detected:</span>
+            <span class="voice-value" [ngClass]="{'speech-active': isSpeechDetected, 'speech-inactive': !isSpeechDetected}">{{ isSpeechDetected ? 'Yes' : 'No' }}</span>
+          </div>
+          <div class="voice-item" *ngIf="speechConfidence > 0">
+            <span class="voice-label">Confidence:</span>
+            <span class="voice-value">{{ (speechConfidence * 100) | number:'1.1-1' }}%</span>
+          </div>
+          <div class="voice-item" *ngIf="speechRecognitionActive">
+            <span class="voice-label">Speech Recognition:</span>
+            <span class="voice-value status-active">Active</span>
+          </div>
+        </div>
+        <div class="transcript-section" *ngIf="currentTranscript">
+          <h4>Live Transcript:</h4>
+          <div class="transcript">{{ currentTranscript }}</div>
+        </div>
       </div>
 
-      <div class="stat-item">
-        <span class="stat-label">Audio Violations:</span>
-        <span class="stat-value">{{ audioViolations.length }}</span>
-      </div>
-
-      <div class="stat-item" *ngIf="lastViolationEpochTime">
-        <span class="stat-label">Last Violation:</span>
-        <span class="stat-value">{{ lastViolationEpochTime }}</span>
-      </div>
-    </div>
-
-    <!-- Recent Audio Violations -->
-    <div class="recent-violations" *ngIf="audioViolations.length > 0">
-      <h4>Recent Audio Violations:</h4>
-      <div class="violations-list">
-        <div
-          *ngFor="let violation of audioViolations.slice(-5)"
-          class="violation-item"
-          [ngClass]="'severity-' + violation.severity"
-        >
-          <span class="violation-word">{{ violation.detectedWord }}</span>
-          <span class="violation-severity">{{ violation.severity }}</span>
-          <span class="violation-time">{{ lastViolationEpochTime }}</span>
+      <!-- Violations Summary -->
+      <div class="card violations-section">
+        <h3>Violations Summary</h3>
+        <div class="violation-stats">
+          <div class="stat-item">
+            <span class="stat-label">Total</span>
+            <span class="stat-value">{{ totalViolations }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Audio</span>
+            <span class="stat-value">{{ audioViolations.length }}</span>
+          </div>
+          <div class="stat-item" *ngIf="lastViolationEpochTime">
+            <span class="stat-label">Last Violation</span>
+            <span class="stat-value">{{ lastViolationEpochTime }}</span>
+          </div>
+        </div>
+        <div class="recent-violations" *ngIf="audioViolations.length > 0">
+          <h4>Recent Audio Violations</h4>
+          <div class="violations-list">
+            <div *ngFor="let violation of audioViolations.slice(-5)" class="violation-item" [ngClass]="'severity-' + violation.severity">
+              <span class="violation-word">{{ violation.detectedWord }}</span>
+              <span class="violation-severity">{{ violation.severity }}</span>
+              <span class="violation-time">{{ violation.timestamp }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -217,20 +151,13 @@
 
   <!-- Messages -->
   <div class="messages">
-    <!-- Violation Messages -->
-    <div
-      *ngIf="violationMessage"
-      class="message violation-message"
-      [ngClass]="{
-        'high-severity': violationMessage.includes('🚨'),
-        'medium-severity': violationMessage.includes('⚠️'),
-        'low-severity': violationMessage.includes('ℹ️')
-      }"
-    >
+    <div *ngIf="violationMessage" class="message violation-message" [ngClass]="{
+      'high-severity': violationMessage.includes('🚨'),
+      'medium-severity': violationMessage.includes('⚠️'),
+      'low-severity': violationMessage.includes('ℹ️')
+    }">
       {{ violationMessage }}
     </div>
-
-    <!-- Pusher Messages -->
     <div *ngIf="pusherMessage" class="message pusher-message">
       {{ pusherMessage }}
     </div>

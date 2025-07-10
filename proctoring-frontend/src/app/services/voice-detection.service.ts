@@ -28,7 +28,7 @@ export class VoiceDetectionService {
   private readonly TARGET_SAMPLE_RATE = 16000;
   private readonly WINDOW_SIZE_SAMPLES = 512;
   private readonly SPEECH_THRESHOLD = 0.001;
-  private readonly ANALYZER_THRESHOLD = 0.3;
+  private readonly ANALYZER_THRESHOLD = 0.1;
 
   // Hidden states for the RNN model
   private h: Float32Array = new Float32Array(128);

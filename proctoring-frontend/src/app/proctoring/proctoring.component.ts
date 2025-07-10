@@ -166,7 +166,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private handleVoiceDetection(vadResult: any): void {
     if (this.isProctoringActive && this.sessionId) {
-      //console.log('Voice detected:', vadResult);
+         console.log('Voice detected:', vadResult);
       // Voice detection is now handled by the enhanced service
     }
   }

@@ -50,47 +50,21 @@ export class ScreenRecordingService {
 
       console.log('Requesting screen sharing permission...');
 
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true, // Use simple boolean to avoid TypeScript errors
-        audio: false // Request audio separately
+      const combinedStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+          sampleSize: 16,
+          channelCount: 2,
+          deviceId: 'default'
+        },
       });
-
-      // Try to get audio separately (this might fail, which is ok)
-      let audioStream: MediaStream | null = null;
-      try {
-        audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            sampleRate: 44100,
-            sampleSize: 16,
-            channelCount: 2,
-            deviceId: 'default'
-          },
-          video: false
-        });
-        console.log('Microphone permission granted.');
-      } catch (audioError) {
-        console.warn('Could not get audio stream:', audioError);
-      }
-
-      // Combine streams if we have audio
-      let combinedStream: MediaStream;
-      if (audioStream && audioStream.getAudioTracks().length > 0) {
-        combinedStream = new MediaStream([
-          ...displayStream.getVideoTracks(),
-          ...audioStream.getAudioTracks()
-        ]);
-        console.log('Combined video and audio tracks');
-      } else {
-        combinedStream = displayStream;
-        console.log('Using display stream only (no audio)');
-      }
 
       this.mediaStream = combinedStream;
 
-      // Handle when a user stops sharing
-      displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+      combinedStream.getVideoTracks()[0].addEventListener('ended', () => {
         console.log('User stopped screen sharing');
         if (this.isRecording) {
           this.internalStopRecording();
