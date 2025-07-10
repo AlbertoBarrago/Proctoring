@@ -20,7 +20,7 @@ The application uses the computer's webcam and microphone to monitor the user's 
 - **Angular:** A powerful framework for building dynamic single-page applications.
 - **TypeScript:** A typed superset of JavaScript that enhances code quality and maintainability.
 - **face-api.js:** A JavaScript API for face detection and face recognition in the browser.
-- **Pusher-js:** For real-time communication with the backend.
+- **Pusher-js:** For receiving real-time events and messages from the backend.
 - **WebRTC:** For accessing the user's camera, microphone, and screen.
 
 ## Setup and Installation

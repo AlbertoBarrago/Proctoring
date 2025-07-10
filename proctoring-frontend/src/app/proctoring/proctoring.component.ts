@@ -5,7 +5,7 @@ import {FaceDetectionService} from '../services/face-detection.service';
 import {ScreenRecordingService} from '../services/screen-recording.service';
 import {WebSocketService} from '../services/websocket.service';
 import {VoiceDetectionService} from '../services/voice-detection.service';
-import {Subscription} from 'rxjs';
+import {Subscription, timestamp} from 'rxjs';
 import * as faceapi from 'face-api.js';
 import {ProctoringService} from "../services/proctoring.service";
 
@@ -123,12 +123,12 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
         this.speechRecognitionActive = true;
         console.log('Speech recognized:', result.transcript);
 
-        // Clear transcript after 3 seconds
+        // Clear transcript after 5 seconds
         setTimeout(() => {
           if (this.currentTranscript === result.transcript) {
             this.currentTranscript = '';
           }
-        }, 3000);
+        }, 5000);
       });
 
       // Subscribe to violation detection
