@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class ProctoringRepository implements ProctoringRepositoryInterface
 {
-    public function startSession(array $data)
+    public function startSession(array $data): int
     {
         return DB::table('proctoring_sessions')->insertGetId([
             'user_id' => $data['user_id'] ?? null,
@@ -19,7 +19,7 @@ class ProctoringRepository implements ProctoringRepositoryInterface
         ]);
     }
 
-    public function endSession(string $sessionId)
+    public function endSession(string $sessionId): int
     {
         return DB::table('proctoring_sessions')
             ->where('id', $sessionId)
@@ -36,7 +36,6 @@ class ProctoringRepository implements ProctoringRepositoryInterface
             'session_id' => $sessionId,
             'event_type' => $type,
             'event_data' => json_encode([
-                'timestamp' => $timestamp,
                 'details' => $details
             ]),
             'created_at' => now(),
@@ -45,7 +44,7 @@ class ProctoringRepository implements ProctoringRepositoryInterface
     }
 
 
-    public function logEvent(string $sessionId, array $eventData)
+    public function logEvent(string $sessionId, array $eventData): bool
     {
         return DB::table('proctoring_events')->insert([
             'session_id' => $sessionId,

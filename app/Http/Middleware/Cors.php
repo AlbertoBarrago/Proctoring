@@ -11,14 +11,14 @@ class Cors
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         // Handle preflight OPTIONS requests
         if ($request->isMethod('OPTIONS')) {
             return response('', 200)
-                ->header('Access-Control-Allow-Origin', 'http://localhost:4200')
+                ->header('Access-Control-Allow-Origin', env('FRONTEND_URL', 'http://localhost:4200'))
                 ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
                 ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept')
                 ->header('Access-Control-Allow-Credentials', 'false')
@@ -28,7 +28,7 @@ class Cors
         $response = $next($request);
 
         // Add CORS headers to actual requests
-        $response->headers->set('Access-Control-Allow-Origin', 'http://localhost:4200');
+        $response->headers->set('Access-Control-Allow-Origin', env('FRONTEND_URL', 'http://localhost:4200'));
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
         $response->headers->set('Access-Control-Allow-Credentials', 'false');
