@@ -7,7 +7,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class ProctoringService {
-  private apiUrl = `${environment.apiUrl}/proctoring`;
+  private apiUrl = `${environment.API_URL}/proctoring`;
   public sessionStartTime: number = 0;
 
   constructor(private http: HttpClient) { }

@@ -8,8 +8,8 @@ import { environment } from '../../environments/environment';
 })
 export class WebSocketService {
   private pusher: Pusher | null = null;
-  private PUSHER_APP_KEY = environment.pusher.key;
-  private PUSHER_APP_CLUSTER = environment.pusher.cluster;
+  private PUSHER_APP_KEY = environment.PUSHER_APP_KEY;
+  private PUSHER_APP_CLUSTER = environment.PUSHER_APP_CLUSTER;
 
   constructor() { }
   connect(): void {
