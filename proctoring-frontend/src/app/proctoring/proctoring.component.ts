@@ -166,7 +166,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private handleVoiceDetection(vadResult: any): void {
     if (this.isProctoringActive && this.sessionId) {
-         console.log('Voice detected:', vadResult);
+       //console.log('Voice detected:', vadResult);
       // Voice detection is now handled by the enhanced service
     }
   }
@@ -306,11 +306,11 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isRecordingActive = false;
 
       if (recordedBlob && recordedBlob.size > 0) {
-        console.log('Screen recording stopped. Uploading...', recordedBlob);
+        //console.log('Screen recording stopped. Uploading...', recordedBlob);
         await this.screenRecordingService.uploadRecording(this.sessionId, recordedBlob);
-        console.log('Screen recording uploaded successfully.');
+        //console.log('Screen recording uploaded successfully.');
       } else {
-        console.log('No recording data available to upload');
+        //console.log('No recording data available to upload');
       }
     } catch (error) {
       console.error('Failed to stop or upload screen recording:', error);
@@ -321,9 +321,9 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private initializeWebSocket(): void {
     this.webSocketService.connect();
-    this.pusherSubscription = this.webSocketService.subscribeToChannel('test-channel').subscribe({
+    this.pusherSubscription = this.webSocketService.subscribeToChannel('sound-violation').subscribe({
       next: (event: { eventName: string, data: any }) => {
-        if (event.eventName === 'test-message') {
+        if (event.eventName === 'sound-message') {
           this.pusherMessage = `Backend message: ${event.data.message}`;
           console.log('Pusher event received:', event.data);
         }

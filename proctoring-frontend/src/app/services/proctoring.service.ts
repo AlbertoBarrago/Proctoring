@@ -49,6 +49,7 @@ export class ProctoringService {
 
 
   recordViolation(sessionId: string, type: string, timestamp: number, details: string): Observable<any> {
+    console.log('Recording violation:', sessionId, type, timestamp, details);
     return this.http.post(`${this.apiUrl}/violation`, {
       session_id: sessionId,
       type: type,

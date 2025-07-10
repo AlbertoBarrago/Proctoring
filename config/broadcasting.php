@@ -22,7 +22,7 @@ return [
     | Broadcast Connections
     |--------------------------------------------------------------------------
     |
-    | Here you may define all of the broadcast connections that will be used
+    | Here you may define all the broadcast connections that will be used
     | to broadcast events to other servers or an API. Of course, each of
     | these connections has its own configuration options.
     |
@@ -37,6 +37,8 @@ return [
             'app_id' => env('PUSHER_APP_ID'),
             'options' => [
                 'encrypted' => true,
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'useTLS' => true,
             ],
         ],
         'client_options' => [
