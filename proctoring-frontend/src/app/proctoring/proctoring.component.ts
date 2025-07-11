@@ -5,7 +5,7 @@ import {FaceDetectionService} from '../services/face-detection.service';
 import {ScreenRecordingService} from '../services/screen-recording.service';
 import {WebSocketService} from '../services/websocket.service';
 import {VoiceDetectionService} from '../services/voice-detection.service';
-import {Subscription, timestamp} from 'rxjs';
+import {firstValueFrom, Subscription, timestamp} from 'rxjs';
 import * as faceapi from 'face-api.js';
 import {ProctoringService} from "../services/proctoring.service";
 
@@ -334,7 +334,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async startProctoring(): Promise<void> {
     try {
-      const sessionResponse = await this.proctoringService.startSession().toPromise();
+      const sessionResponse = await firstValueFrom(this.proctoringService.startSession());
       this.sessionId = sessionResponse.session_id;
       this.sessionStatus = 'Active';
       this.isProctoringActive = true;
@@ -514,6 +514,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
           this.violationMessage = '';
           this.numFaces = null;
           this.faceDirection = '';
+          this.pusherMessage = '';
 
           console.log('Proctoring session ended:', endedSessionId);
         },
