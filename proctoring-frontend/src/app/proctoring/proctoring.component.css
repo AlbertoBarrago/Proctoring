@@ -1,38 +1,19 @@
-/*-- General Styles --*/
 .proctoring-container {
   font-family: var(--font-family), serif;
-  background-color: var(--background-color);
   color: var(--text-color);
-  max-width: 1400px;
+  max-width: 1250px;
   margin: 20px auto;
   padding: 24px;
   border-radius: 12px;
 }
 
-h1, h2, h3, h4 {
-  color: var(--text-color);
-  margin-bottom: 16px;
-  font-weight: 600;
-}
-
-h1 {
-  text-align: center;
-  font-size: 2.25rem;
-  margin-bottom: 32px;
-}
-
-h2 { font-size: 1.75rem; }
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.1rem; color: var(--text-light-color); }
-
-/*-- Card & Grid Layout --*/
 .card {
   background-color: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: 24px;
   margin-bottom: 24px;
-  box-shadow: none; /* Shadow is less effective on dark bg, border is better */
+  box-shadow: none;
 }
 
 .grid-container {
@@ -43,7 +24,6 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 
 .grid-item { min-width: 0; }
 
-/*-- Status Indicators --*/
 .session-info .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -51,7 +31,7 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 }
 
 .status-item {
-  background-color: #374151; /* slate-700 */
+  background-color: #374151;
   padding: 16px;
   display: flex;
   justify-content: space-between;
@@ -87,7 +67,6 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
   border-left-color: var(--danger-color);
 }
 
-/*-- Buttons --*/
 .controls {
   text-align: center;
   margin: 16px 0 32px;
@@ -111,7 +90,7 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 .btn-primary:hover { background-color: var(--primary-color-dark); }
 .btn-primary:disabled {
   background-color: var(--primary-color-light);
-  color: #4b5563; /* slate-600 */
+  color: var(--text-color);
   cursor: not-allowed;
   transform: none;
 }
@@ -119,13 +98,12 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 .btn-danger { background-color: var(--danger-color); }
 .btn-danger:hover { background-color: var(--danger-color-dark); }
 .btn-danger:disabled {
-  background-color: #991b1b; /* red-800 */
-  color: #4b5563; /* slate-600 */
+  background-color: #991b1b;
+  color: var(--text-color);
   cursor: not-allowed;
   transform: none;
 }
 
-/*-- Video & Detection --*/
 .video-wrapper {
   position: relative;
   display: inline-block;
@@ -154,14 +132,13 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
   margin-top: 16px;
 }
 .info-item {
-  background-color: #374151; /* slate-700 */
+  background-color: #374151;
   padding: 10px 16px;
   border-radius: var(--border-radius);
 }
 .info-label { color: var(--text-light-color); }
 .info-value { margin-left: 8px; font-weight: 600; }
 
-/*-- Voice & Transcript --*/
 .voice-status {
   display: flex;
   flex-wrap: wrap;
@@ -169,7 +146,7 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
   margin-bottom: 16px;
 }
 .voice-item {
-  background-color: #374151; /* slate-700 */
+  background-color: #374151;
   padding: 10px 16px;
   border-radius: var(--border-radius);
 }
@@ -187,7 +164,6 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
   color: var(--text-color);
 }
 
-/*-- Violations --*/
 .violation-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -195,7 +171,7 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
   margin-bottom: 24px;
 }
 .stat-item {
-  background-color: #374151; /* slate-700 */
+  background-color: #374151;
   padding: 16px;
   border-radius: var(--border-radius);
   text-align: center;
@@ -232,7 +208,6 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 .severity-medium { background-color: #5c4513; color: #fef08a; border-left: 5px solid var(--warning-color); }
 .severity-low { background-color: #143d2a; color: #bbf7d0; border-left: 5px solid var(--success-color); }
 
-/*-- Prohibited Words --*/
 .word-input-section {
   display: flex;
   gap: 12px;
@@ -262,7 +237,7 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
   gap: 10px;
 }
 .word-tag {
-  background-color: #374151; /* slate-700 */
+  background-color: #374151;
   color: var(--text-color);
   padding: 8px 12px;
   border-radius: 16px;
@@ -281,7 +256,6 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 }
 .remove-word-btn:hover { color: var(--danger-color); }
 
-/*-- Alert Messages --*/
 .messages {
   margin-top: 24px;
   text-align: center;
@@ -298,12 +272,10 @@ h4 { font-size: 1.1rem; color: var(--text-light-color); }
 .violation-message.low-severity { background-color: var(--info-color); }
 .pusher-message { background-color: #374151; color: var(--text-color); }
 
-/*-- Animations --*/
 @keyframes blink {
   50% { opacity: 0.8; }
 }
 
-/*-- Responsive Design --*/
 @media (max-width: 992px) {
   .grid-container { grid-template-columns: 1fr; }
 }

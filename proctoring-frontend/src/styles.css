@@ -1,8 +1,6 @@
-/* You can add global styles to this file, and also import other style files */
 /*-- Google Fonts Import --*/
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/*-- Dark Theme High-Contrast & Modern Color Palette --*/
 :root {
   --primary-color: #3b82f6;
   --primary-color-dark: #2563eb;
@@ -26,6 +24,21 @@
 }
 
 body, html {
-  background-color: #0a0a0a;
-  color: white;
+  background-color: var(--background-color);
 }
+
+h1, h2, h3, h4 {
+  color: var(--text-color);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+h1 {
+  text-align: center;
+  font-size: 2.25rem;
+  margin-bottom: 32px;
+}
+
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; color: var(--text-light-color); }

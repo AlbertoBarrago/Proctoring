@@ -50,10 +50,10 @@ class VADProcessor extends AudioWorkletProcessor {
       const inputChannel = input[0];
 
       // Debug logging every 1000 calls
-      if (this.processCallCount % 1000 === 0) {
+    /*   if (this.processCallCount % 1000 === 0) {
         console.log(`AudioWorklet: Processed ${this.processCallCount} calls, sent ${this.buffersSent} buffers, input size: ${inputChannel.length}`);
       }
-
+    */
       // Process audio for VAD with resampling
       this.processAudioForVAD(inputChannel);
     } else {

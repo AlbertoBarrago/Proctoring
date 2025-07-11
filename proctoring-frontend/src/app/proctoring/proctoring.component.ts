@@ -452,10 +452,10 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async checkFaceDirection(video: HTMLVideoElement): Promise<void> {
-    const direction = await this.faceDetectionService.detectFaceDirection(video);
-    this.faceDirection = direction;
-    if (direction !== 'looking-forward' && direction !== 'no-face') {
-      await this.handleViolation('looking_away', `Looking ${direction}`);
+    const directionResult = await this.faceDetectionService.detectFaceDirectionWithDetails(video);
+    this.faceDirection = directionResult.direction;
+    if (this.faceDirection !== 'looking-forward' && this.faceDirection !== 'no-face') {
+      await this.handleViolation('looking_away', `Looking ${directionResult.direction}`);
     } else {
       // Only clear violation message if it's not an audio violation
       if (!this.violationMessage.includes('AUDIO VIOLATION')) {

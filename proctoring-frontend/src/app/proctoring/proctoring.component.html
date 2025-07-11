@@ -55,7 +55,6 @@
 
     <!-- Left Column -->
     <div class="grid-item">
-      <!-- Video Feed -->
       <div class="card video-container">
         <h2>Live Feed</h2>
         <div class="video-wrapper">
@@ -75,7 +74,7 @@
       </div>
 
       <!-- Prohibited Words -->
-      <div class="card prohibited-words-section">
+      <!--<div class="card prohibited-words-section">
         <h3>Prohibited Words Management</h3>
         <div class="word-input-section">
           <input type="text" [(ngModel)]="newProhibitedWord" placeholder="Enter prohibited word" class="word-input" (keyup.enter)="addNewProhibitedWord()">
@@ -90,7 +89,7 @@
             </span>
           </div>
         </div>
-      </div>
+      </div>-->
     </div>
 
     <!-- Right Column -->
@@ -149,7 +148,7 @@
     </div>
   </div>
 
-  <!-- Messages -->
+  <!-- Pusher Messages -->
   <div class="messages">
     <div *ngIf="violationMessage" class="message violation-message" [ngClass]="{
       'high-severity': violationMessage.includes('🚨'),
@@ -162,5 +161,4 @@
       {{ pusherMessage }}
     </div>
   </div>
-
 </div>

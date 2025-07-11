@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { InferenceSession, env } from 'onnxruntime-web';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import {Injectable} from '@angular/core';
+import {InferenceSession, env} from 'onnxruntime-web';
+import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {VADResult, ViolationResult, SpeechRecognitionResult} from "../interfaces";
 
 @Injectable({
@@ -13,6 +13,8 @@ export class VoiceDetectionService {
   private audioWorkletNode: AudioWorkletNode | null = null;
   private isInitialized = false;
   private isMonitoring = false;
+  private restartTimeAfterValidationError = 500;
+  private language = 'en-US';
 
   // Speech Recognition
   private recognition: any = null;
@@ -48,6 +50,8 @@ export class VoiceDetectionService {
   private debugCounter = 0;
   private maxRMS = 0;
   private minRMS = Infinity;
+  private errorCount = 0;
+  private maxRetries = 5;
 
   constructor() {
     this.configureONNXRuntime();
@@ -80,7 +84,7 @@ export class VoiceDetectionService {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
+    this.recognition.lang = this.language;
     this.recognition.maxAlternatives = 3;
 
     this.recognition.onresult = (event: any) => {
@@ -99,7 +103,8 @@ export class VoiceDetectionService {
           const speechResult: SpeechRecognitionResult = {
             transcript,
             confidence,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            isFinal: result.isFinal
           };
 
           this.speechRecognitionSubject.next(speechResult);
@@ -109,27 +114,48 @@ export class VoiceDetectionService {
 
     this.recognition.onstart = () => {
       console.log('Speech recognition started successfully');
+      this.errorCount = 0;
     };
 
 
     this.recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
 
-      if (this.isListening) {
+      // Handle different error types
+      if (event.error === 'not-allowed') {
+        console.error('Microphone access denied');
+        return;
+      }
+
+      if (event.error === 'network') {
+        console.error('Network error in speech recognition');
+      }
+
+      this.isListening = false;
+
+
+      if (this.errorCount >= this.maxRetries) {
+        console.error(`Max retries (${this.maxRetries}) reached. Stopping speech recognition.`);
+        return;
+      }
+
+      if (this.isMonitoring) {
+        const delay = Math.min(1000 * Math.pow(2, this.errorCount || 0), 10000);
         setTimeout(() => {
           this.startSpeechRecognition();
-        }, 1000);
+        }, delay);
       }
     };
 
     this.recognition.onend = () => {
       console.log('Speech recognition ended');
+      this.isListening = false;
 
       // Restart recognition if we're still monitoring
       if (this.isListening && this.isMonitoring) {
         setTimeout(() => {
           this.startSpeechRecognition();
-        }, 500);
+        }, 100);
       }
     };
   }
@@ -138,7 +164,6 @@ export class VoiceDetectionService {
     const words = transcript.split(/\s+/);
     //console.log(`Checking violations for: "${transcript}"`);
     //console.log(`Current prohibited words:`, Array.from(this.prohibitedWords));
-
 
     for (const word of words) {
       const cleanWord = word.replace(/\W/g, '');
@@ -154,8 +179,25 @@ export class VoiceDetectionService {
 
         this.violationSubject.next(violation);
         console.warn(`🚨 Prohibited word detected: "${cleanWord}" in transcript: "${transcript}"`);
+
+        this.handleViolationDetected();
+        return;
       }
     }
+  }
+
+  private handleViolationDetected(): void {
+    console.log('Handling violation - restarting speech recognition');
+
+    this.stopSpeechRecognition();
+
+    this.errorCount = 0;
+
+    setTimeout(() => {
+      if (this.isMonitoring) {
+        this.startSpeechRecognition();
+      }
+    }, this.restartTimeAfterValidationError);
   }
 
   private getSeverityLevel(word: string): 'low' | 'medium' | 'high' {
@@ -168,7 +210,12 @@ export class VoiceDetectionService {
   }
 
   private startSpeechRecognition(): void {
-    if (!this.recognition || this.isListening) return;
+    if (!this.recognition) return;
+
+    if (this.isListening) {
+      console.log('Speech recognition already running');
+      return;
+    }
 
     try {
       this.recognition.start();
@@ -176,6 +223,7 @@ export class VoiceDetectionService {
       console.log('Speech recognition started');
     } catch (error) {
       console.error('Error starting speech recognition:', error);
+      this.isListening = false;
     }
   }
 
@@ -214,23 +262,25 @@ export class VoiceDetectionService {
     }
   }
 
-  private async loadAudioWorklet(): Promise<void> {
+  private async loadAudioWorklet(): Promise<boolean> {
     try {
       if (!this.audioContext) {
-        throw new Error('Audio context not initialized');
+        console.error('Audio context not initialized');
+        return false;
       }
 
       await this.audioContext.audioWorklet.addModule('/assets/js/vad.js');
       console.log('Audio worklet loaded successfully');
+      return true;
     } catch (error) {
       console.error('Error loading audio worklet:', error);
-      throw error;
+      return false;
     }
   }
 
   async startMonitoring(): Promise<void> {
     if (!this.isInitialized) {
-      throw new Error('VAD service not initialized');
+      console.error('VAD service not initialized');
     }
 
     if (this.isMonitoring) {
@@ -251,7 +301,8 @@ export class VoiceDetectionService {
       });
 
       if (!this.audioContext) {
-        throw new Error('Audio context not available');
+        console.error('Audio context not available');
+        return;
       }
 
       // Resume audio context if suspended
@@ -272,15 +323,12 @@ export class VoiceDetectionService {
       // Connect audio nodes
       source.connect(this.audioWorkletNode);
 
-      // Listen for audio data from the worklet
       this.audioWorkletNode.port.onmessage = (event) => {
         this.processAudioData(event.data);
       };
 
-      // Start speech recognition
       this.startSpeechRecognition();
 
-      // Reset debug counters
       this.debugCounter = 0;
       this.maxRMS = 0;
       this.minRMS = Infinity;
@@ -304,15 +352,12 @@ export class VoiceDetectionService {
     }
 
     try {
-      // Calculate audio energy and RMS
       const energy = this.calculateAudioEnergy(audioData);
       const rms = Math.sqrt(energy);
 
-      // Update debug stats
       this.maxRMS = Math.max(this.maxRMS, rms);
       this.minRMS = Math.min(this.minRMS, rms);
 
-      // Adaptive threshold based on observed levels
       let speechThreshold = this.SPEECH_THRESHOLD;
       if (this.maxRMS > 0) {
         speechThreshold = this.maxRMS * 0.1;
@@ -330,9 +375,14 @@ export class VoiceDetectionService {
 
       this.vadResultSubject.next(vadResult);
 
-     /* if (this.debugCounter % 50 === 0) {
-        console.log(`VAD Stats: Speech=${isSpeech}, RMS=${rms.toFixed(6)}, Threshold=${speechThreshold.toFixed(6)}, Min=${this.minRMS.toFixed(6)}, Max=${this.maxRMS.toFixed(6)}, Buffers processed=${this.debugCounter}`);
-      }*/
+      /* if (this.debugCounter % 50 === 0) {
+         console.log(`VAD Stats: Speech=${isSpeech},
+         RMS=${rms.toFixed(6)},
+         Threshold=${speechThreshold.toFixed(6)},
+         Min=${this.minRMS.toFixed(6)},
+         Max=${this.maxRMS.toFixed(6)},
+         Buffers processed=${this.debugCounter}`);
+       }*/
 
     } catch (error) {
       console.error('Error processing audio data:', error);
@@ -353,22 +403,18 @@ export class VoiceDetectionService {
     }
 
     try {
-      // Stop speech recognition
       this.stopSpeechRecognition();
 
-      // Stop audio worklet
       if (this.audioWorkletNode) {
         this.audioWorkletNode.disconnect();
         this.audioWorkletNode = null;
       }
 
-      // Stop media stream
       if (this.mediaStream) {
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
       }
 
-      // Reset hidden states
       this.h.fill(0);
       this.c.fill(0);
 
@@ -379,7 +425,6 @@ export class VoiceDetectionService {
     }
   }
 
-  // Public methods for managing prohibited words
   addProhibitedWord(word: string): void {
     this.prohibitedWords.add(word.toLowerCase());
   }
