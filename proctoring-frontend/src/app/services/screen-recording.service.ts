@@ -12,10 +12,7 @@ export class ScreenRecordingService {
   private readonly CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
   private stopPromise: Promise<Blob> | null = null;
   private stopResolve: ((blob: Blob) => void) | null = null;
-
-  /**
-   * Gets the best supported MIME type for recording
-   */
+  
   private getBestSupportedMimeType(): string {
     const mimeTypes = [
       'video/webm',
@@ -72,21 +69,17 @@ export class ScreenRecordingService {
         }
       });
 
-      // Reset recording state
       this.recordedChunks = [];
       this.isRecording = true;
 
-      // Get a supported MIME type
       const mimeType = this.getBestSupportedMimeType();
 
-      // Create MediaRecorder with appropriate options
       const options = mimeType ? { mimeType } : undefined;
 
       console.log('Creating MediaRecorder with options:', options);
       this.mediaRecorder = new MediaRecorder(combinedStream, options);
       console.log('MediaRecorder created with MIME type:', this.mediaRecorder.mimeType);
 
-      // Set up data event handler
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
           console.log('Data available event, size:', event.data.size);

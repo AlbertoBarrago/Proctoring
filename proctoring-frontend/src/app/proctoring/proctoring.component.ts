@@ -71,6 +71,16 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.initializeVAD();
   }
 
+  async ngAfterViewInit(): Promise<void> {
+    try {
+      await this.faceDetectionService.loadModels();
+      this.faceDetectionStatus = 'Models loaded. Ready.';
+    } catch (error) {
+      console.error('Error loading face detection models:', error);
+      this.faceDetectionStatus = 'Failed to load models';
+    }
+  }
+
   testSpeechRecognition(): void {
     console.log('Testing speech recognition...');
     console.log('Current prohibited words:', this.vadService.getProhibitedWords());
@@ -96,7 +106,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     this.vadService.removeProhibitedWord(word);
     console.log('Removed prohibited word:', word);
   }
-
 
   private async initializeVAD(): Promise<void> {
     try {
@@ -265,16 +274,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     setInterval(() => {
       this.isRecordingActive = this.screenRecordingService.isRecordingActive();
     }, 1000);
-  }
-
-  async ngAfterViewInit(): Promise<void> {
-    try {
-      await this.faceDetectionService.loadModels();
-      this.faceDetectionStatus = 'Models loaded. Ready.';
-    } catch (error) {
-      console.error('Error loading face detection models:', error);
-      this.faceDetectionStatus = 'Failed to load models';
-    }
   }
 
   async startScreenRecording(): Promise<void> {
@@ -452,10 +451,10 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async checkFaceDirection(video: HTMLVideoElement): Promise<void> {
-    const directionResult = await this.faceDetectionService.detectFaceDirectionWithDetails(video);
-    this.faceDirection = directionResult.direction;
+    const direction = await this.faceDetectionService.detectFaceDirection(video);
+    this.faceDirection = direction;
     if (this.faceDirection !== 'looking-forward' && this.faceDirection !== 'no-face') {
-      await this.handleViolation('looking_away', `Looking ${directionResult.direction}`);
+      await this.handleViolation('looking_away', `Looking ${direction}`);
     } else {
       // Only clear violation message if it's not an audio violation
       if (!this.violationMessage.includes('AUDIO VIOLATION')) {
@@ -466,6 +465,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private async handleViolation(type: string, details: string): Promise<void> {
     // Don't overwrite audio violations with face violations
+    // For now I keep separate logic but is possible to unify the result
     if (!this.violationMessage.includes('AUDIO VIOLATION')) {
       this.violationMessage = `VIOLATION: ${details}`;
     }
