@@ -456,7 +456,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.faceDirection !== 'looking-forward' && this.faceDirection !== 'no-face') {
       await this.handleViolation('looking_away', `Looking ${direction}`);
     } else {
-      // Only clear violation message if it's not an audio violation
       if (!this.violationMessage.includes('AUDIO VIOLATION')) {
         this.violationMessage = '';
       }
@@ -464,7 +463,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async handleViolation(type: string, details: string): Promise<void> {
-    // Don't overwrite audio violations with face violations
     // For now I keep separate logic but is possible to unify the result
     if (!this.violationMessage.includes('AUDIO VIOLATION')) {
       this.violationMessage = `VIOLATION: ${details}`;

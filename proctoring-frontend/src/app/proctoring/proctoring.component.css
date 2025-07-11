@@ -3,7 +3,7 @@
   color: var(--text-color);
   max-width: 1250px;
   margin: 20px auto;
-  padding: 24px;
+  padding: 20px;
   border-radius: 12px;
 }
 
@@ -32,7 +32,7 @@
 
 .status-item {
   background-color: #374151;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -47,7 +47,7 @@
 
 .status-value {
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.00rem;
 }
 
 .status-active, .status-ready, .status-recording, .status-monitoring {
