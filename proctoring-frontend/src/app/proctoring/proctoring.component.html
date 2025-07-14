@@ -1,7 +1,6 @@
 <div class="proctoring-container">
-  <h1>AI Proctoring <code>POC</code></h1>
+  <h1>(<code>POC</code>) AI Proctoring </h1>
 
-  <!-- Session & Status -->
   <div class="card session-info" *ngIf="!isProctoringActive">
     <h2>Session Status</h2>
     <div class="status-grid">
@@ -45,7 +44,6 @@
     </div>
   </div>
 
-  <!-- Controls -->
   <div class="controls">
     <button (click)="startProctoring()" [disabled]="isProctoringActive" class="btn btn-primary">Start Proctoring</button>
     <button (click)="endProctoring()" [disabled]="!isProctoringActive" class="btn btn-danger">End Proctoring</button>
@@ -53,7 +51,6 @@
 
   <div class="grid-container" *ngIf="isProctoringActive">
 
-    <!-- Left Column -->
     <div class="grid-item">
       <div class="card video-container">
         <h2>Live Feed</h2>
@@ -92,7 +89,6 @@
       </div>-->
     </div>
 
-    <!-- Right Column -->
     <div class="grid-item">
       <!-- Voice Monitoring -->
       <div class="card voice-info">
@@ -148,7 +144,6 @@
     </div>
   </div>
 
-  <!-- Pusher Messages -->
   <div class="messages">
     <div *ngIf="violationMessage" class="message violation-message" [ngClass]="{
       'high-severity': violationMessage.includes('🚨'),
