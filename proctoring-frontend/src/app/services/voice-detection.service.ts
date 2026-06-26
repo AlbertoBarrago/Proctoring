@@ -1,5 +1,4 @@
 import {Injectable} from '@angular/core';
-import {InferenceSession, env} from 'onnxruntime-web';
 import {BehaviorSubject, Observable, Subject} from 'rxjs';
 import {VADResult, ViolationResult, SpeechRecognitionResult} from "../interfaces";
 
@@ -7,10 +6,11 @@ import {VADResult, ViolationResult, SpeechRecognitionResult} from "../interfaces
   providedIn: 'root'
 })
 export class VoiceDetectionService {
-  private onnxSession: InferenceSession | null = null;
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
+  private audioSourceNode: MediaStreamAudioSourceNode | null = null;
   private audioWorkletNode: AudioWorkletNode | null = null;
+  private scriptProcessorNode: ScriptProcessorNode | null = null;
   private isInitialized = false;
   private isMonitoring = false;
   private restartTimeAfterValidationError = 500;
@@ -19,6 +19,8 @@ export class VoiceDetectionService {
   // Speech Recognition
   private recognition: any = null;
   private isListening = false;
+  private shouldRestartSpeechRecognition = false;
+  private speechRecognitionSupported = false;
 
   // Prohibited words configuration
   private prohibitedWords: Set<string> = new Set([
@@ -31,10 +33,9 @@ export class VoiceDetectionService {
   private readonly WINDOW_SIZE_SAMPLES = 512;
   private readonly SPEECH_THRESHOLD = 0.001;
   private readonly ANALYZER_THRESHOLD = 0.1;
-
-  // Hidden states for the RNN model
-  private h: Float32Array = new Float32Array(128);
-  private c: Float32Array = new Float32Array(128);
+  private readonly SCRIPT_PROCESSOR_BUFFER_SIZE = 1024;
+  private audioProcessingBuffer = new Float32Array(this.WINDOW_SIZE_SAMPLES);
+  private audioProcessingBufferIndex = 0;
 
   // Observables
   private vadResultSubject = new BehaviorSubject<VADResult | null>(null);
@@ -52,35 +53,21 @@ export class VoiceDetectionService {
   private minRMS = Infinity;
   private errorCount = 0;
   private maxRetries = 5;
+  private lastVadSpeechLogTime = 0;
 
   constructor() {
-    this.configureONNXRuntime();
     this.initializeSpeechRecognition();
-  }
-
-
-  private configureONNXRuntime(): void {
-    env.wasm.wasmPaths = {
-      //@ts-ignore
-      'ort-wasm-simd-threaded.wasm': '/assets/ort-wasm-simd-threaded.wasm',
-      'ort-wasm-simd-threaded.jsep.wasm': '/assets/ort-wasm-simd-threaded.jsep.wasm'
-    };
-
-    env.wasm.numThreads = 2;
-    env.wasm.simd = true;
-    env.wasm.proxy = false;
-
-    console.log('ONNX Runtime Web configured with available WASM files');
   }
 
   private initializeSpeechRecognition(): void {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      console.warn('Speech Recognition not supported in this browser');
+      console.warn('[SpeechRecognition] Not supported in this browser. Audio tracking will use Web Audio VAD only, so spoken words cannot be logged or checked for prohibited words.');
       return;
     }
 
+    this.speechRecognitionSupported = true;
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
@@ -92,6 +79,12 @@ export class VoiceDetectionService {
         const result = event.results[i];
         const transcript = result[0].transcript.toLowerCase().trim();
         const confidence = result[0].confidence || this.ANALYZER_THRESHOLD;
+
+        console.log('[SpeechRecognition] transcript:', {
+          transcript,
+          confidence,
+          isFinal: result.isFinal
+        });
 
         if (confidence > this.ANALYZER_THRESHOLD) {
           this.checkForViolations(transcript, confidence);
@@ -139,7 +132,7 @@ export class VoiceDetectionService {
         return;
       }
 
-      if (this.isMonitoring) {
+      if (this.isMonitoring && this.shouldRestartSpeechRecognition) {
         const delay = Math.min(1000 * Math.pow(2, this.errorCount || 0), 10000);
         setTimeout(() => {
           this.startSpeechRecognition();
@@ -151,8 +144,7 @@ export class VoiceDetectionService {
       console.log('Speech recognition ended');
       this.isListening = false;
 
-      // Restart recognition if we're still monitoring
-      if (this.isListening && this.isMonitoring) {
+      if (this.shouldRestartSpeechRecognition && this.isMonitoring) {
         setTimeout(() => {
           this.startSpeechRecognition();
         }, 100);
@@ -218,6 +210,7 @@ export class VoiceDetectionService {
     }
 
     try {
+      this.shouldRestartSpeechRecognition = true;
       this.recognition.start();
       this.isListening = true;
       console.log('Speech recognition started');
@@ -228,6 +221,8 @@ export class VoiceDetectionService {
   }
 
   private stopSpeechRecognition(): void {
+    this.shouldRestartSpeechRecognition = false;
+
     if (!this.recognition || !this.isListening) return;
 
     try {
@@ -247,12 +242,15 @@ export class VoiceDetectionService {
     try {
       console.log('Initializing VAD service...');
 
-      this.audioContext = new AudioContext();
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('Web Audio API is not supported in this browser');
+      }
+
+      this.audioContext = new AudioContextClass();
       console.log('AudioContext created with sample rate:', this.audioContext.sampleRate);
 
-      await this.loadAudioWorklet();
-
-      console.log('Using basic energy detection for voice activity');
+      console.log('Using Web Audio energy detection for voice activity');
 
       this.isInitialized = true;
       console.log('Voice Activity Detection service initialized successfully');
@@ -266,6 +264,11 @@ export class VoiceDetectionService {
     try {
       if (!this.audioContext) {
         console.error('Audio context not initialized');
+        return false;
+      }
+
+      if (!this.audioContext.audioWorklet) {
+        console.warn('AudioWorklet is not available. Falling back to ScriptProcessorNode.');
         return false;
       }
 
@@ -295,8 +298,7 @@ export class VoiceDetectionService {
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: false,
-          sampleRate: 48000
+          autoGainControl: false
         }
       });
 
@@ -311,8 +313,30 @@ export class VoiceDetectionService {
         console.log('AudioContext resumed');
       }
 
-      // Create audio nodes
-      const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+      await this.createAudioProcessingPipeline();
+
+      this.debugCounter = 0;
+      this.maxRMS = 0;
+      this.minRMS = Infinity;
+      this.lastVadSpeechLogTime = 0;
+
+      this.isMonitoring = true;
+      this.startSpeechRecognition();
+      console.log('Voice activity monitoring started');
+    } catch (error) {
+      console.error('Error starting VAD monitoring:', error);
+      throw error;
+    }
+  }
+
+  private async createAudioProcessingPipeline(): Promise<void> {
+    if (!this.audioContext || !this.mediaStream) {
+      throw new Error('Audio context or media stream not available');
+    }
+
+    this.audioSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+
+    if (await this.loadAudioWorklet()) {
       this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'vad-processor', {
         processorOptions: {
           targetSampleRate: this.TARGET_SAMPLE_RATE,
@@ -320,36 +344,66 @@ export class VoiceDetectionService {
         }
       });
 
-      // Connect audio nodes
-      source.connect(this.audioWorkletNode);
-
       this.audioWorkletNode.port.onmessage = (event) => {
-        this.processAudioData(event.data);
+        this.appendAudioData(event.data);
       };
 
-      this.startSpeechRecognition();
+      this.audioSourceNode.connect(this.audioWorkletNode);
+      this.audioWorkletNode.connect(this.audioContext.destination);
+      return;
+    }
 
-      this.debugCounter = 0;
-      this.maxRMS = 0;
-      this.minRMS = Infinity;
+    this.scriptProcessorNode = this.audioContext.createScriptProcessor(
+      this.SCRIPT_PROCESSOR_BUFFER_SIZE,
+      1,
+      1
+    );
 
-      this.isMonitoring = true;
-      console.log('Voice activity monitoring and speech recognition started');
-    } catch (error) {
-      console.error('Error starting VAD monitoring:', error);
-      throw error;
+    this.scriptProcessorNode.onaudioprocess = (event) => {
+      const input = event.inputBuffer.getChannelData(0);
+      const output = event.outputBuffer.getChannelData(0);
+      output.fill(0);
+      this.appendAudioData(this.resampleAudio(input, this.audioContext!.sampleRate));
+    };
+
+    this.audioSourceNode.connect(this.scriptProcessorNode);
+    this.scriptProcessorNode.connect(this.audioContext.destination);
+  }
+
+  private appendAudioData(audioData: Float32Array): void {
+    for (let i = 0; i < audioData.length; i++) {
+      this.audioProcessingBuffer[this.audioProcessingBufferIndex] = audioData[i];
+      this.audioProcessingBufferIndex++;
+
+      if (this.audioProcessingBufferIndex >= this.WINDOW_SIZE_SAMPLES) {
+        this.processAudioWindow(new Float32Array(this.audioProcessingBuffer));
+        this.audioProcessingBufferIndex = 0;
+      }
     }
   }
 
-  private async processAudioData(audioData: Float32Array): Promise<void> {
-    this.debugCounter++;
-
-    if (audioData.length !== this.WINDOW_SIZE_SAMPLES) {
-      if (this.debugCounter % 100 === 0) {
-        console.log(`Unexpected buffer size: ${audioData.length}, expected: ${this.WINDOW_SIZE_SAMPLES}`);
-      }
-      return;
+  private resampleAudio(audioData: Float32Array, sourceSampleRate: number): Float32Array {
+    if (Math.abs(sourceSampleRate - this.TARGET_SAMPLE_RATE) < 100) {
+      return audioData;
     }
+
+    const ratio = sourceSampleRate / this.TARGET_SAMPLE_RATE;
+    const outputLength = Math.floor(audioData.length / ratio);
+    const output = new Float32Array(outputLength);
+
+    for (let i = 0; i < outputLength; i++) {
+      const sourceIndex = i * ratio;
+      const sourceIndexFloor = Math.floor(sourceIndex);
+      const sourceIndexCeil = Math.min(sourceIndexFloor + 1, audioData.length - 1);
+      const fraction = sourceIndex - sourceIndexFloor;
+      output[i] = audioData[sourceIndexFloor] * (1 - fraction) + audioData[sourceIndexCeil] * fraction;
+    }
+
+    return output;
+  }
+
+  private processAudioWindow(audioData: Float32Array): void {
+    this.debugCounter++;
 
     try {
       const energy = this.calculateAudioEnergy(audioData);
@@ -365,15 +419,25 @@ export class VoiceDetectionService {
 
       const confidence = Math.min(rms / speechThreshold, 1.0);
       const isSpeech = rms > speechThreshold;
+      const now = Date.now();
 
       // Emit VAD result
       const vadResult: VADResult = {
         isSpeech,
         confidence,
-        timestamp: Date.now()
+        timestamp: now
       };
 
       this.vadResultSubject.next(vadResult);
+
+      if (isSpeech && !this.speechRecognitionSupported && now - this.lastVadSpeechLogTime > 1000) {
+        console.log('[VAD] Speech detected, but transcript is unavailable in this browser.', {
+          confidence,
+          rms,
+          threshold: speechThreshold
+        });
+        this.lastVadSpeechLogTime = now;
+      }
 
       /* if (this.debugCounter % 50 === 0) {
          console.log(`VAD Stats: Speech=${isSpeech},
@@ -410,13 +474,24 @@ export class VoiceDetectionService {
         this.audioWorkletNode = null;
       }
 
+      if (this.scriptProcessorNode) {
+        this.scriptProcessorNode.disconnect();
+        this.scriptProcessorNode.onaudioprocess = null;
+        this.scriptProcessorNode = null;
+      }
+
+      if (this.audioSourceNode) {
+        this.audioSourceNode.disconnect();
+        this.audioSourceNode = null;
+      }
+
       if (this.mediaStream) {
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
       }
 
-      this.h.fill(0);
-      this.c.fill(0);
+      this.audioProcessingBuffer.fill(0);
+      this.audioProcessingBufferIndex = 0;
 
       this.isMonitoring = false;
       console.log('Voice activity monitoring and speech recognition stopped');
@@ -458,16 +533,20 @@ export class VoiceDetectionService {
     return this.isMonitoring;
   }
 
+  isSpeechRecognitionSupported(): boolean {
+    return this.speechRecognitionSupported;
+  }
+
+  isSpeechRecognitionRunning(): boolean {
+    return this.isListening;
+  }
+
   cleanup(): void {
     this.stopMonitoring();
 
     if (this.audioContext) {
       this.audioContext.close();
       this.audioContext = null;
-    }
-
-    if (this.onnxSession) {
-      this.onnxSession = null;
     }
 
     this.isInitialized = false;

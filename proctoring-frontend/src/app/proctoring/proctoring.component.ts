@@ -44,6 +44,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   // Speech Recognition Properties
   currentTranscript: string = '';
   speechRecognitionActive: boolean = false;
+  speechRecognitionSupported: boolean = false;
 
   // Violation Properties
   audioViolations: any[] = [];
@@ -107,6 +108,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       this.vadStatus = 'Initializing...';
       await this.vadService.initialize();
       this.vadStatus = 'Ready';
+      this.speechRecognitionSupported = this.vadService.isSpeechRecognitionSupported();
 
       // Subscribe to VAD results
       this.vadSubscription = this.vadService.getVADResult().subscribe(result => {
@@ -124,8 +126,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       // Subscribe to speech recognition results
       this.speechSubscription = this.vadService.getSpeechRecognition().subscribe(result => {
         this.currentTranscript = result.transcript;
-        this.speechRecognitionActive = true;
-        console.log('Speech recognized:', result.transcript);
+        this.speechRecognitionActive = this.vadService.isSpeechRecognitionRunning();
+        console.log('[Proctoring] Speech recognized:', result);
 
         // Clear transcript after 5 seconds
         setTimeout(() => {
@@ -174,7 +176,7 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private handleAudioViolation(violation: any): void {
-    console.warn('🚨 Audio violation detected:', violation);
+    console.warn('[Proctoring] Audio violation detected:', violation);
 
     this.audioViolations.push(violation);
     this.totalViolations++;
@@ -336,8 +338,8 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.vadStatus === 'Ready') {
         await this.vadService.startMonitoring();
         this.vadStatus = 'Monitoring';
-        this.speechRecognitionActive = true;
-        console.log('Voice monitoring and speech recognition started');
+        this.speechRecognitionActive = this.vadService.isSpeechRecognitionRunning();
+        console.log('Voice monitoring started');
       }
     } catch (error) {
       console.error('Error starting voice monitoring:', error);

@@ -105,6 +105,10 @@
             <span class="voice-label">Speech Recognition:</span>
             <span class="voice-value status-active">Active</span>
           </div>
+          <div class="voice-item" *ngIf="!speechRecognitionSupported">
+            <span class="voice-label">Speech Recognition:</span>
+            <span class="voice-value">Not supported by this browser</span>
+          </div>
         </div>
         <div class="transcript-section" *ngIf="currentTranscript">
           <h4>Live Transcript:</h4>
