@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Interfaces\ProctoringRepositoryInterface;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Pusher\Pusher;
 
 
 class ProctoringController extends Controller
@@ -140,25 +138,6 @@ class ProctoringController extends Controller
                 $request->input('details')
             );
 
-            if ($request->input('type') == 'audio_violation') {
-                $pusher = new Pusher(
-                    env('PUSHER_APP_KEY'),
-                    env('PUSHER_APP_SECRET'),
-                    env('PUSHER_APP_ID'),
-                    [
-                        'cluster' => env('PUSHER_APP_CLUSTER'),
-                        'useTLS' => true,
-                    ]
-                );
-                $data = [
-                    'message' => $request->input('details'),
-                    'session_id' => $request->input('session_id'),
-                    'timestamp' => now(),
-                    'formattedMessage' => "During session {$request->input('session_id')}: {$request->input('details')}"
-                ];
-                $pusher->trigger('sound-violation', 'sound-message', $data);
-            }
-
             Log::info("Violazione registrata", [
                 'session_id' => $request->input('session_id'),
                 'type' => $request->input('type'),
@@ -179,13 +158,6 @@ class ProctoringController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Si è verificato un errore durante la registrazione della violazione',
-                'error' => $e->getMessage()
-            ], 500);
-        } catch (GuzzleException $e) {
-            Log::error("Errore durante la registrazione su pusher della violazione: " . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Errore durante la registrazione su pusher della violazione',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -3,7 +3,6 @@ import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {FaceDetectionService} from '../services/face-detection.service';
 import {ScreenRecordingService} from '../services/screen-recording.service';
-import {WebSocketService} from '../services/websocket.service';
 import {VoiceDetectionService} from '../services/voice-detection.service';
 import {firstValueFrom, Subscription, timestamp} from 'rxjs';
 import * as faceapi from 'face-api.js';
@@ -22,7 +21,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private videoStream: MediaStream | null = null;
   private detectionInterval: any;
-  private pusherSubscription: Subscription | undefined;
   private vadSubscription: Subscription | undefined;
   private speechSubscription: Subscription | undefined;
   private violationSubscription: Subscription | undefined;
@@ -36,7 +34,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
   numFaces: number | null = null;
   faceDirection: string = '';
   violationMessage: string = '';
-  pusherMessage: string = '';
 
   // Voice Detection Properties
   vadStatus: string = 'Not initialized';
@@ -60,13 +57,11 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     private proctoringService: ProctoringService,
     private faceDetectionService: FaceDetectionService,
     private screenRecordingService: ScreenRecordingService,
-    private webSocketService: WebSocketService,
     private vadService: VoiceDetectionService
   ) {
   }
 
   ngOnInit(): void {
-    this.initializeWebSocket();
     this.checkRecordingState();
     this.initializeVAD();
   }
@@ -316,21 +311,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private initializeWebSocket(): void {
-    this.webSocketService.connect();
-    this.pusherSubscription = this.webSocketService.subscribeToChannel('sound-violation').subscribe({
-      next: (event: { eventName: string, data: any }) => {
-        if (event.eventName === 'sound-message') {
-          this.pusherMessage = `Backend message: ${event.data.message}`;
-          console.log('Pusher event received:', event.data);
-        }
-      },
-      error: (error: any) => {
-        console.error('Error receiving Pusher message:', error);
-      }
-    });
-  }
-
   async startProctoring(): Promise<void> {
     try {
       const sessionResponse = await firstValueFrom(this.proctoringService.startSession());
@@ -512,7 +492,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
           this.violationMessage = '';
           this.numFaces = null;
           this.faceDirection = '';
-          this.pusherMessage = '';
 
           console.log('Proctoring session ended:', endedSessionId);
         },
@@ -597,9 +576,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopProctoringCleanup();
-    if (this.pusherSubscription) {
-      this.pusherSubscription.unsubscribe();
-    }
     if (this.vadSubscription) {
       this.vadSubscription.unsubscribe();
     }
@@ -609,7 +585,6 @@ export class ProctoringComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.violationSubscription) {
       this.violationSubscription.unsubscribe();
     }
-    this.webSocketService.disconnect();
     this.vadService.cleanup();
   }
 }

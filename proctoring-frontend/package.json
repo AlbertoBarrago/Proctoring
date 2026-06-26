@@ -23,7 +23,6 @@
     "@angular/router": "^18.0.0",
     "@types/yargs": "^17.0.33",
     "face-api.js": "^0.22.2",
-    "pusher-js": "^8.4.0",
     "rxjs": "~7.8.0",
     "src": "^1.1.2",
     "tslib": "^2.3.0",
